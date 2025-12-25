@@ -1,0 +1,209 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 13 - Localization and Filtering}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Localization Matters}
+\begin{itemize}
+\item Local sensing (lidar, cameras) is inherently egocentric; autonomy needs global context.
+\item Robots must answer "where am I?" and "have I seen this before?" to plan reliably.
+\item Localization and mapping bridge local measurements to global understanding.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Opening motivation on global information needs and localization/mapping definition.
+% --- Original text end ---
+
+\begin{frame}{Map-Based Localization}
+\begin{itemize}
+\item Map representation plus belief representation jointly support navigation.
+\item Example: floor plan navigation requires knowing the current room before routing.
+\item Behavioral hacks (wall-following) can work, but maps enable deliberate planning.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.8\linewidth]{../tex/figs/ch13_figs/map.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Discussion of Figure map and map-based vs behavioral approaches.
+% --- Original text end ---
+
+\begin{frame}{Belief Representations}
+\begin{itemize}
+\item Single best-guess poses ignore uncertainty; probabilistic beliefs capture it.
+\item Choose between single vs multi-hypothesis and continuous vs discrete forms.
+\item Expressiveness trades off with computational load for downstream filters.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{../tex/figs/ch13_figs/distributions.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Figure on probabilistic representations and surrounding explanation.
+% --- Original text end ---
+
+\begin{frame}{Random Variables Refresher}
+\begin{itemize}
+\item Discrete RV $X$ uses pmf $p(x)$ with $\sum_x p(x)=1$ (coin flips, grid poses).
+\item Continuous RV uses pdf $p(x)$ with $\int p(x)dx=1$ (planar position, heading).
+\item Measurements, states, and environment parameters all fit into this RV framework.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definitions of discrete and continuous random variables with examples.
+% --- Original text end ---
+
+\begin{frame}{Joint, Conditional, Independence}
+\begin{itemize}
+\item Joint distribution $p(x,y)$ captures simultaneous hypotheses for two RVs.
+\item Independence: $p(x,y)=p(x)p(y)$; conditional independence inserts a third RV.
+\item Conditionals reweight beliefs: $p(x\mid y)=\frac{p(x,y)}{p(y)}$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Joint distribution, independence, conditional probability, conditional independence sections.
+% --- Original text end ---
+
+\begin{frame}{Total Probability and Bayes}
+\begin{itemize}
+\item Law of total probability marginalizes over hidden variables.
+\item Bayes' rule swaps conditionals to fuse new evidence with priors.
+\end{itemize}
+\pause
+\begin{align*}
+ p(x) &= \sum_y p(x\mid y)p(y) \\
+ p(x\mid y) &= \frac{p(y\mid x)p(x)}{p(y)}
+\end{align*}
+\end{frame}
+% --- Original text start ---
+% Sections on law of total probability and Bayes' rule including equations.
+% --- Original text end ---
+
+\begin{frame}{Moments: Expectation and Covariance}
+\begin{itemize}
+\item Expectation $E[X]$ is the first moment (mean) for discrete or continuous RVs.
+\item Linearity: $E[aX+b]=aE[X]+b$ simplifies many derivations.
+\item Covariance $\text{cov}(X,Y)=E[XY^\top]-E[X]E[Y]^\top$ links co-variation.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Expectation and covariance definitions and intuition.
+% --- Original text end ---
+
+\begin{frame}{Markov Model Ingredients}
+\begin{itemize}
+\item State $\x_t$ may include robot pose plus salient map features.
+\item Controls $\bu_t$ advance the state; measurements $\z_t$ reveal environment cues.
+\item Use sequences $\x_{t_1:t_n}$, $\z_{t_1:t_n}$, $\bu_{t_1:t_n}$ to denote histories.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Section on states, measurements, and controls notation.
+% --- Original text end ---
+
+\begin{frame}{Probabilistic Dynamics}
+\begin{itemize}
+\item General model: $p(\x_t\mid \x_{0:t-1},\z_{1:t-1},\bu_{1:t})$ with measurement $p(\z_t\mid \x_{0:t},\cdot)$.
+\item If state is complete (Markov), transition simplifies to $p(\x_t\mid \x_{t-1},\bu_t)$.
+\item Measurement model often collapses to $p(\z_t\mid \x_t)$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% General probabilistic model equations and Markov property simplifications.
+% --- Original text end ---
+
+\begin{frame}{Hidden Markov Model}
+\begin{itemize}
+\item Bayes network links prior state, control, next state, and measurement.
+\item Execution order: apply control then sense, matching most real robots.
+\item Graph makes conditional independencies explicit for inference.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.55\linewidth]{../tex/figs/ch13_figs/hmm.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Figure hmm and explanation.
+% --- Original text end ---
+
+\begin{frame}{Belief and Prediction}
+\begin{itemize}
+\item Belief: $bel(\x_t)=p(\x_t\mid \z_{1:t},\bu_{1:t})$ captures posterior state pdf.
+\item Prediction: $\overline{bel}(\x_t)=p(\x_t\mid \z_{1:t-1},\bu_{1:t})$ omits current measurement.
+\item Filtering alternates prediction (motion update) and correction (measurement update).
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definitions of belief and prediction distributions.
+% --- Original text end ---
+
+\begin{frame}{Bayes Filter Steps}
+\begin{itemize}
+\item Prediction: propagate $bel(\x_{t-1})$ through motion model via $\overline{bel}(\x_t)$.
+\item Correction: weight prediction by likelihood $p(\z_t\mid \x_t)$ and renormalize.
+\item Recursive structure enables online localization with streaming data.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Bayes filter algorithm overview.
+% --- Original text end ---
+
+\begin{frame}{Deriving the Update}
+\begin{itemize}
+\item Apply Bayes' rule to $bel(\x_t)$ to expose likelihood and prediction terms.
+\item Use law of total probability to integrate over $\x_{t-1}$ for $\overline{bel}(\x_t)$.
+\item Markov property removes historical dependencies, yielding tractable recursions.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Derivation section for prediction and correction equations.
+% --- Original text end ---
+
+\begin{frame}{Implementation Notes}
+\begin{itemize}
+\item Integrals in the continuous Bayes filter are rarely closed-form.
+\item Numerical quadrature or sampling may be too costly for high-dimensional states.
+\item Practical filters (EKF, particle, histogram) approximate the same recursion.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Practical considerations paragraph.
+% --- Original text end ---
+
+\begin{frame}{Discrete Bayes Filter}
+\begin{itemize}
+\item Finite state spaces replace integrals with sums over hypothesis bins.
+\item Belief stored as probabilities $\{p_{k,t}\}$; prediction sums over transitions.
+\item Still needs normalization constant $\eta$ after weighting by measurement likelihood.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Discrete Bayes filter algorithm description.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Filtering Essentials}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Represent localization beliefs probabilistically to capture multi-modal uncertainty.
+\item Hidden Markov models + Bayes filter recursion underpin most localization stacks.
+\item Choose approximations (continuous, discrete, sample-based) that balance fidelity and compute.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Summary tying localization motivation, Bayes filter, and discrete variant.
+% --- Original text end ---
+
+\end{document}

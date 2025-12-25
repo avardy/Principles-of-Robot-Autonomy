@@ -1,0 +1,214 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 21 - Reinforcement Learning}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{From DP to RL}
+\begin{itemize}
+\item Reinforcement learning (RL) generalizes dynamic programming by maximizing cumulative reward instead of minimizing cost.
+\item Environment can be a black box, so the policy must be learned from interaction rather than exact models.
+\item Successes span helicopter aerobatics, game play, finance, and robotics, motivating a lightweight survey here.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Intro paragraphs comparing DP and RL and motivating broader applications.
+% --- Original text end ---
+
+\begin{frame}{Interaction Loop}
+\begin{itemize}
+\item Agent issues an action and receives next state plus reward feedback.
+\item Learning hinges on observing how the environment responds, regardless of whether the transition law is known.
+\item Same abstraction covers both model-based (known dynamics) and model-free (unknown dynamics) settings.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{../tex/figs/ch21_figs/rl.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Figure 21.1 showing the agent-environment feedback diagram.
+% --- Original text end ---
+
+\begin{frame}{RL Problem Ingredients}
+\begin{itemize}
+\item States $\x \in \mathcal{X}$ and controls $\bu \in \mathcal{U}$ follow stochastic transitions.
+\item Policies $\pi_t(\x_t)$ produce closed-loop actions even when disturbances occur.
+\item Rewards $R(\x_t,\bu_t)$ quantify desirability of each state-action pair.
+\end{itemize}
+\pause
+\begin{equation*}
+p(\x_t \mid \x_{t-1}, \bu_{t-1})
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Problem formulation subsection defining the transition model, policy notation, and reward function.
+% --- Original text end ---
+
+\begin{frame}{Value Function Objective}
+\begin{itemize}
+\item Value function $V_T^\pi(\x)$ measures discounted reward when executing policy $\pi$.
+\item Discount factor $\gamma$ keeps infinite-horizon sums finite by down-weighting distant rewards.
+\item Optimal policy $\pi^*$ maximizes $V_T^\pi(\x)$ for every admissible state.
+\end{itemize}
+\pause
+\begin{equation*}
+V_T^\pi(\x) = E\Big[\sum_{t=0}^{T-1} \gamma^t R(\x_t, \pi_t(\x_t)) \,\Big|\, \x_0 = \x\Big]
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Definition of value function, discounting, and the reinforcement learning problem statement.
+% --- Original text end ---
+
+\begin{frame}{Value Iteration Refresher}
+\begin{itemize}
+\item Principle of optimality leads to Bellman recursion identical in spirit to stochastic DP.
+\item Backward sweep updates value function and retrieves optimal stage policies.
+\item Infinite-horizon setups iterate until a stationary value and policy emerge.
+\end{itemize}
+\pause
+\begin{equation*}
+V_{k+1}^*(\x) = \max_{\bu \in \mathcal{U}} \Big[R(\x,\bu) + \gamma \sum_{\x'} p(\x' \mid \x, \bu) V_k^*(\x')\Big]
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Section on model-based RL and Algorithm 21.1 (dynamic programming/value iteration).
+% --- Original text end ---
+
+\begin{frame}{Inventory Control Revisited}
+\begin{itemize}
+\item Same stochastic inventory system from Chapter 20 fits RL notation by treating rewards as negative costs.
+\item Bellman updates recover ordering policy: only restock when inventory hits zero.
+\item Demonstrates equivalence between DP analysis and value-iteration phrasing.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Example 21.1 describing the inventory control problem solved via RL Bellman updates.
+% --- Original text end ---
+
+\begin{frame}{Policy Evaluation Building Block}
+\begin{itemize}
+\item Policy evaluation computes $V_k^\pi(\x)$ for a fixed policy by removing the control optimization.
+\item Recursion resembles Bellman update but substitutes the chosen action $\pi(\x)$.
+\item Infinite-horizon case solves a linear system or iterates until convergence.
+\end{itemize}
+\pause
+\begin{equation*}
+V_{k+1}^\pi(\x) = R(\x, \pi(\x)) + \gamma \sum_{\x'} p(\x' \mid \x, \pi(\x)) V_k^\pi(\x')
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Policy evaluation subsection and Algorithm 21.2.
+% --- Original text end ---
+
+\begin{frame}{Q-Functions and Policy Iteration}
+\begin{itemize}
+\item State-action value $Q^\pi(\x,\bu)$ scores a one-step deviation followed by policy $\pi$.
+\item Optimal value $V^*$ arises by maximizing $Q^*$ over admissible controls.
+\item Policy iteration cycles policy evaluation and greedy improvement until convergence.
+\end{itemize}
+\pause
+\begin{equation*}
+Q_{k+1}^\pi(\x,\bu) = R(\x,\bu) + \gamma \sum_{\x'} p(\x' \mid \x, \bu) V_k^\pi(\x')
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Q-function definition and policy iteration algorithm discussion.
+% --- Original text end ---
+
+\begin{frame}{When Models Are Unknown}
+\begin{itemize}
+\item Many robots only observe $(\x_t, \bu_t, r_t)$ samples without transition probabilities.
+\item Learning must rely on experience data, either logged or gathered online.
+\item Distinguish model-based RL (learn transitions) from model-free RL (directly learn value/policy).
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Model-free reinforcement learning introduction describing trajectory data requirements.
+% --- Original text end ---
+
+\begin{frame}{Q-Learning Essentials}
+\begin{itemize}
+\item Update estimates of $Q(\x,\bu)$ toward sampled reward plus discounted best successor value.
+\item Requires only tuples $(\x_t, \bu_t, r_t, \x_{t+1})$ and a learning rate $\alpha$.
+\item Converges for small discrete spaces but struggles with large or continuous domains.
+\end{itemize}
+\pause
+\begin{equation*}
+Q(\x_t,\bu_t) \leftarrow Q(\x_t,\bu_t) + \alpha \Big(r_t + \gamma \max_{\bu'} Q(\x_{t+1}, \bu') - Q(\x_t,\bu_t)\Big)
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Q-learning subsection and Algorithm 21.3.
+% --- Original text end ---
+
+\begin{frame}{Policy Gradient Intuition}
+\begin{itemize}
+\item Parameterize a stochastic policy $\pi_{\bm{\theta}}(\bu \mid \x)$ and optimize expected return directly.
+\item Likelihood-ratio trick estimates gradients from sampled trajectories without knowing dynamics.
+\item REINFORCE repeatedly samples, computes trajectory reward, and ascends along the estimated gradient.
+\end{itemize}
+\pause
+\begin{equation*}
+\nabla_{\bm{\theta}} J(\bm{\theta}) \approx r(\tau) \sum_{t=0}^{T-1} \nabla_{\bm{\theta}} \log \pi_{\bm{\theta}}(\bu_t \mid \x_t)
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Policy gradient subsection covering trajectory-based gradient estimation and REINFORCE.
+% --- Original text end ---
+
+\begin{frame}{Actor-Critic Blend}
+\begin{itemize}
+\item Actor parameterizes the policy while critic estimates a value baseline $V_{\bm{\phi}}(\x)$.
+\item Baseline reduces variance by comparing returns to expected performance.
+\item Simultaneous updates of $\bm{\theta}$ and $\bm{\phi}$ improve sample efficiency versus pure policy gradients.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Actor-critic subsection explaining joint learning of policy and value function.
+% --- Original text end ---
+
+\begin{frame}{Deep RL and Function Approximation}
+\begin{itemize}
+\item Neural networks approximate value functions or Q-functions to scale toward high-dimensional states.
+\item Policies parameterized by deep nets can map images or other rich observations to actions.
+\item Brings RL closer to real-world perception-action loops, at the cost of stability challenges.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Deep reinforcement learning subsection highlighting neural network approximators.
+% --- Original text end ---
+
+\begin{frame}{Exploration vs. Exploitation}
+\begin{itemize}
+\item Exploration ensures coverage of informative states/actions; exploitation leverages current knowledge.
+\item Simple $\epsilon$-greedy schemes randomize with probability $\epsilon$ to probe alternatives.
+\item Balancing both is fundamental for discovering high-reward behaviors without wasting data.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Discussion on exploration versus exploitation and $\epsilon$-greedy strategy.
+% --- Original text end ---
+
+\begin{frame}{Reminder: RL Toolkit}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item RL reframes sequential decision making via reward, discounting, value functions, and policies.
+\item Model-based tools (value and policy iteration) mirror dynamic programming in RL notation.
+\item Model-free families—Q-learning, policy gradients, actor-critic, deep RL—trade models for sampled experience while juggling exploration.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Chapter summary emphasizing RL formulations, algorithms, and exploration challenges.
+% --- Original text end ---
+
+\end{document}

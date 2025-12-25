@@ -1,0 +1,190 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 17 - Simultaneous Localization and Mapping}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why SLAM?}
+\begin{itemize}
+\item Many missions offer no prior map, so the robot must build one while figuring out its own pose.
+\item SLAM estimates pose and map jointly from measurement history $\z_{1:t}$ and controls $\bu_{1:t}$.
+\item Coupled errors mean pose drift corrupts the map and map errors feed back into pose.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% The previous chapter introduced the robot localization problem, but assumed that the map $\m$ was \textit{given}. However, in many real-world robotics applications a map might not be known ahead of time, and therefore it wold need to be built on-the-fly. This problem, which involves using information about measurements $\z$ and controls $\bu$ to simultaneously localize the robot in the world and build a map, is known as \textit{simultaneous localization and mapping} (SLAM). Many real-world settings are challenging for robotic autonomy because both the map and the relative pose of the robot are unknown... error in the pose causes error in map estimation and error in map estimation causes error in the pose estimate.
+% --- Original text end ---
+
+\begin{frame}{Online vs. Full SLAM}
+\begin{itemize}
+\item Online SLAM tracks $p(\x_t, \m \mid \z_{1:t}, \bu_{1:t})$, focusing on the current pose.
+\item Full SLAM estimates $p(\x_{1:t}, \m \mid \z_{1:t}, \bu_{1:t})$, keeping the entire trajectory.
+\item Both share the coupled error challenge; choice depends on task memory needs.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.75\linewidth]{../tex/figs/ch17_figs/online_full_slam.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Generally speaking there are two types of SLAM problems that can be considered... The difference between these two SLAM problems is demonstrated graphically in Figure \ref{fig:online_full_slam}.
+% --- Original text end ---
+
+\begin{frame}{EKF SLAM Overview}
+\begin{itemize}
+\item Extend EKF localization by augmenting the state with all landmark coordinates.
+\item Maintain Gaussian belief $bel(\y_t)$ with shared covariance that encodes pose--map correlations.
+\item Efficient and analytical when uncertainty is moderate but limited by unimodal assumption.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% One of the earliest approaches to the online SLAM problem leverages the extended Kalman filter... EKF SLAM approaches have the advantage... main disadvantages...
+% --- Original text end ---
+
+\begin{frame}{Augmented State and Belief}
+\begin{itemize}
+\item Stack robot pose and all landmark positions into $\y_t$ so EKF tracks them jointly.
+\item Belief becomes $bel(\y_t) = p(\y_t \mid \z_{1:t}, \bu_{1:t})$.
+\end{itemize}
+\pause
+\begin{equation*}
+\y_t = \begin{bmatrix} \x_t \\ \m_1 \\ \vdots \\ \m_N \end{bmatrix}
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% The main idea behind EKF SLAM is that the coordinates $(m_{i,x}, m_{i,y})$... augmented state vector... $bel(\y_t) = p(\y_t \mid \z_{1:t}, \bu_{1:t})$.
+% --- Original text end ---
+
+\begin{frame}{Motion and Measurement Models}
+\begin{itemize}
+\item Motion: propagate pose with robot dynamics $\tilde{g}$, keep landmarks static.
+\item Noise covariance $\bm{R}_t$ injects process noise only on robot states.
+\item Measurement: reuse landmark observation model $\z_t^i = h(\y_t, j) + \bm{\delta}_t$ with Jacobian $H_t^j$.
+\end{itemize}
+\pause
+\begin{equation*}
+\bm{R}_t = \begin{bmatrix} \tilde{\bm{R}}_t & 0 \\ 0 & 0 \end{bmatrix}
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Assuming that the landmarks $m_i \in \m$ are static... $g(\bu_t, \y_{t-1}) = [\tilde{g}(\bu_t, \x_{t-1}) \; \m_{1,t-1} \ldots]$ ... measurement model is defined in the same way ... $H_t^j = \nabla_{\y}h(\bar{\bmu}_t,j)$.
+% --- Original text end ---
+
+\begin{frame}{EKF SLAM Steps (Known Correspondences)}
+\begin{itemize}
+\item Predict augmented mean and covariance with $g$ and $G_t$.
+\item For each measurement, use its known landmark index $c_t^i$ to compute innovation, gain, and update.
+\item Initialize previously unseen landmarks from first observation when needed.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Algorithm \ref{alg:ekfslam} presents the EKF SLAM algorithm with known correspondences. It is almost identical... initialize landmark positions when they are first seen.
+% --- Original text end ---
+
+\begin{frame}{Map Initialization Choices}
+\begin{itemize}
+\item Typical prior sets robot pose to the origin with zero covariance (define map frame).
+\item Landmark means start at zero with ``infinite'' covariance to encode no prior knowledge.
+\item Covariance blocks capture growing certainty as landmarks are re-observed.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% For this algorithm a general initialization... $\bmu_0 = [\x_0, 0, ..., 0]^\top$ ... $\bSigma_0$ with $\tilde{\bSigma}_0$ for robot and infinite variance for landmarks... rationale described.
+% --- Original text end ---
+
+\begin{frame}{Unknown Correspondences}
+\begin{itemize}
+\item Maximum-likelihood data association now uses estimated landmark locations.
+\item Each measurement compares against all existing landmarks plus a hypothesized new one via Mahalanobis distance.
+\item Threshold $\alpha$ decides when to spawn a new landmark from the hypothesis.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Performing EKF SLAM when the correspondences ... Algorithm \ref{alg:ekfslamunknowncorr} ... hypothesize position of new landmark ... Mahalanobis distance $d_t^{ik}$ and threshold $\alpha$.
+% --- Original text end ---
+
+\begin{frame}{Example: Range/Bearing Sensor}
+\begin{itemize}
+\item Differential-drive robot senses landmark range $r$ and bearing $\phi$ to update map entries.
+\item Measurement model mirrors localization case but Jacobian spans pose and feature components.
+\item Expected landmark position from a new hit initializes or hypothesizes features.
+\end{itemize}
+\pause
+\begin{equation*}
+h(\y_t, j) = \begin{bmatrix}\sqrt{(m_{j,x}-x)^2 + (m_{j,y}-y)^2} \\ \text{atan2}(m_{j,y}-y, m_{j,x}-x) - \theta \end{bmatrix}
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Example describing differential drive robot with range and bearing measurements ... measurement model and Jacobian ... initialization using $r^i_t$ and $\phi^i_t$.
+% --- Original text end ---
+
+\begin{frame}{Particle SLAM Motivation}
+\begin{itemize}
+\item Particle methods handle non-Gaussian, multimodal beliefs and can solve the full SLAM problem.
+\item Key insight: conditional independence of map features given the true robot path.
+\item Still challenging because particle counts grow with state dimension if not factorized.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Another approach ... particle filter ... full SLAM ... insight about conditional independence ... pros/cons of particle SLAM.
+% --- Original text end ---
+
+\begin{frame}{Posterior Factorization}
+\begin{itemize}
+\item Decompose joint posterior into path posterior times independent feature posteriors.
+\item Enables separate estimators (e.g., EKFs) for each landmark conditioned on sampled paths.
+\item Proof leverages Bayes' rule plus induction over measurements.
+\end{itemize}
+\pause
+\begin{equation*}
+p(\y_{1:t} \mid \z_{1:t}, \bu_{1:t}, c_{1:t}) = p(\x_{1:t} \mid \cdot) \prod_{n=1}^N p(\m_n \mid \x_{1:t}, \z_{1:t}, c_{1:t})
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% The key insight ... factorization equation (17.??) ... derivation using Bayes' rule and induction.
+% --- Original text end ---
+
+\begin{frame}{Fast SLAM Mechanics}
+\begin{itemize}
+\item Each particle carries a path hypothesis plus an EKF for every landmark.
+\item Update the EKF associated with the observed landmark using the particle’s pose.
+\item Weight by the innovation likelihood, then resample particles as in standard particle filters.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Description around Algorithm \ref{alg:fastslam} ... particles $Y_t^{[k]}$ contain pose and per-landmark EKFs ... algorithm steps mixing particle filter sampling/resampling with EKF updates.
+% --- Original text end ---
+
+\begin{frame}{Exercise}
+\begin{itemize}
+\item Implement ``Problem 2: EKF SLAM'' in the AA274A HW4 repository.
+\item Build upon the earlier EKF localization exercise before tackling SLAM.
+\item Repository: \url{https://github.com/PrinciplesofRobotAutonomy/AA274A_HW4}.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Exercise instructions pointing to Problem 2: EKF SLAM and HW4 repository; note to complete EKF localization exercise first.
+% --- Original text end ---
+
+\begin{frame}{Reminder: SLAM Toolbox}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item EKF SLAM augments the state and is efficient when Gaussian assumptions hold.
+\item Particle/fast SLAM tackles full trajectories by factoring path and feature posteriors.
+\item Robust data association (ML + gating) remains critical for map fidelity.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Summary themes: EKF SLAM advantages/limitations, factorization insight for particle SLAM, importance of data association discussed throughout the chapter.
+% --- Original text end ---
+
+\end{document}

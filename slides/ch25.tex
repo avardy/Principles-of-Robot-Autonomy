@@ -1,0 +1,181 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 25 - Formal Methods}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Formal Guarantees?}
+\begin{itemize}
+\item Robots now act in open, interactive settings where safety and explainability are non-negotiable.
+\item Testing alone struggles to capture every scenario or success criterion the robot must respect.
+\item Formal methods target provably correct autonomy: requirements, proofs, and even correct-by-construction synthesis.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Intro paragraphs motivating safe robotics, need for provable correctness, definition of formal methods.
+% --- Original text end ---
+
+\begin{frame}{What Are Formal Methods?}
+\begin{itemize}
+\item Mathematically based techniques for specification, development, and verification of hardware/software.
+\item Encompass languages for requirements, tools for verification/model checking, and synthesis procedures.
+\item This chapter focuses on LTL specifications, reactive-system verification, and reactive synthesis.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definition and scope of formal methods, chapter roadmap toward LTL, verification, synthesis.
+% --- Original text end ---
+
+\begin{frame}{LTL Language Basics}
+\begin{itemize}
+\item Extends propositional logic (Booleans, symbols, \(\lnot, \land, \lor, \to\)) with temporal context over discrete time.
+\item Propositions capture atomic facts (e.g., region visited, button pressed) evaluated at each time step.
+\item Specifications become formulas \(\psi\) built by composing these atoms to describe desired sequences.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Section on LTL operators inherited from propositional logic and their meaning.
+% --- Original text end ---
+
+\begin{frame}{Temporal Operators}
+\begin{itemize}
+\item \(X \psi\): $\psi$ must hold on the next time step; \(\psi_1 U \psi_2\): keep \(\psi_1\) true until \(\psi_2\) occurs.
+\item Eventually and always derived as \(F \psi = \text{true} \: U \: \psi\) and \(G \psi = \lnot F\, \lnot \psi\).
+\item Rich behaviors emerge by composing operators to encode timing, ordering, and persistence constraints.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.55\linewidth]{../tex/figs/ch25_figs/next.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Temporal operators (next, until, eventually, always) and associated figures.
+% --- Original text end ---
+
+\begin{frame}{Composing Specifications}
+\begin{itemize}
+\item Infinitely-often: \(GF \psi\) ensures $\psi$ recurs forever; stability: \(FG \psi\) locks $\psi$ after some time.
+\item Response templates \(G(\psi_1 \to F \psi_2)\) trigger follow-up actions after events.
+\item LTL is a problem-formulation language—precise specs precede any algorithmic solution.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Discussion of GF, FG, response compositions and LTL as specification language.
+% --- Original text end ---
+
+\begin{frame}{Example: Coffee Robot}
+\begin{itemize}
+\item Button press should start two grind cycles followed by two brew cycles.
+\item Wrap the requirement in \(G\) so it applies whenever the button is pressed.
+\item Highlights how discrete-time sequencing maps naturally into LTL syntax.
+\end{itemize}
+\[
+\phi = G\big( \text{button} \to \text{grind} \land X\text{grind} \land XX(\lnot\text{grind} \land \text{brew}) \land XXX(\lnot\text{grind} \land \text{brew}) \big)
+\]
+\end{frame}
+% --- Original text start ---
+% Coffee machine example translating informal requirement to LTL.
+% --- Original text end ---
+
+\begin{frame}{Verification Workflow}
+\begin{itemize}
+\item Treat the robot (or component) as model \(P\) with inputs \(\hat{i}\) and outputs \(\hat{o}\).
+\item Model checking answers whether \(P \models \phi\) for all admissible input sequences.
+\item Success yields provable guarantees; failure surfaces counterexamples to refine design/spec.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{../tex/figs/ch25_figs/verification.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Verification section introducing P models phi notation and Figure verification.
+% --- Original text end ---
+
+\begin{frame}{Reactive Models}
+\begin{itemize}
+\item Inputs represent environment signals; outputs encode the robot’s decisions or actuator commands.
+\item Specifications are written over the combined input/output traces \(\hat{i} \cup \hat{o}\).
+\item Goal: guarantee desired behavior under \emph{all} admissible input sequences.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.55\linewidth]{../tex/figs/ch25_figs/model.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Reactive model explanation with margin figure depicting inputs and outputs.
+% --- Original text end ---
+
+\begin{frame}{Reactive Synthesis}
+\begin{itemize}
+\item Instead of checking an existing design, build a model that is correct-by-construction.
+\item Synthesis consumes \(\phi\) and searches for a finite-state strategy that satisfies it under all inputs.
+\item Requires specification realizability; otherwise no controller can enforce the behavior.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.58\linewidth]{../tex/figs/ch25_figs/synthesis.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Reactive synthesis section and Figure synthesis overview.
+% --- Original text end ---
+
+\begin{frame}{Satisfiable vs Realizable}
+\begin{itemize}
+\item Satisfiable: there exists some input/output pair that meets \(\phi\); useful for feasibility checks.
+\item Realizable: for all inputs there exists an output trace satisfying \(\phi\); crucial for safety guarantees.
+\item Coffee robot spec is satisfiable but not realizable—two rapid button presses create conflicting grind demands.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definitions of satisfiability and realizability plus coffee machine realization example.
+% --- Original text end ---
+
+\begin{frame}{Two-Player Game Formulation}
+\begin{itemize}
+\item Environment chooses among \(2^{|I|}\) inputs; system chooses among \(2^{|O|}\) outputs each step.
+\item Strategy \(f:(2^{|I|})^* \to 2^{|O|}\) maps input histories to actions; winning if \(\hat{i} \cup \hat{o} \models \phi\).
+\item Construct game by translating \(\phi\) into a B"{u}chi automaton, then solving for a winning strategy.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.5\linewidth]{../tex/figs/ch25_figs/game.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Description of synthesis game components and Figure game derived from automaton.
+% --- Original text end ---
+
+\begin{frame}{Example Strategy: Always Grant}
+\begin{itemize}
+\item Spec \(G(r \to X g)\) demands each request be granted next step.
+\item Derived game shows contradiction state if a request goes unfulfilled.
+\item A simple winning strategy is to grant every cycle, avoiding contradiction entirely.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.45\linewidth]{../tex/figs/ch25_figs/game_solution.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Reactive synthesis example with automaton/game depiction and discussion of always-grant strategy.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Formal Methods Habits}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Capture requirements precisely with LTL before coding controllers or planners.
+\item Use verification to prove \(P \models \phi\) and diagnose gaps through counterexamples.
+\item When feasible, leverage synthesis to build controllers that are correct-by-construction.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Chapter summary emphasizing LTL specs, verification, and synthesis-driven design.
+% --- Original text end ---
+
+\end{document}

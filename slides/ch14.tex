@@ -1,0 +1,175 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 14 - Parametric Filters}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Parametric Filters}
+\begin{itemize}
+\item Bayes filter is exact but rarely tractable; approximations need structure.
+\item Discrete grids handle finite states, but continuous robots need compact beliefs.
+\item Parametric filters summarize beliefs with a few parameters (e.g., Gaussian moments).
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Motivation for parametric filters as tractable Bayes filter implementations.
+% --- Original text end ---
+
+\begin{frame}{Gaussian Primer}
+\begin{itemize}
+\item Univariate pdf: $p(x)=\frac{1}{\sqrt{2\pi\sigma^2}}e^{-\frac{1}{2}\frac{(x-\mu)^2}{\sigma^2}}$.
+\item Multivariate pdf uses mean $\bmu$ and covariance $\bSigma$ in $\R^n$.
+\item Notation: $X\sim\mathcal{N}(\bmu,\bSigma)$ encodes the entire belief.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.8\linewidth]{../tex/figs/ch14_figs/gaussians.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Section introducing Gaussian distributions and Figure gaussians.
+% --- Original text end ---
+
+\begin{frame}{Useful Gaussian Properties}
+\begin{itemize}
+\item Affine transforms preserve Gaussian form: $Y=AX+b$ stays normal.
+\item Sum of independent Gaussians is Gaussian with summed means/covariances.
+\item Product of Gaussians is Gaussian, enabling analytic measurement updates.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Enumerated properties exploited by filters.
+% --- Original text end ---
+
+\begin{frame}{Kalman Filter Setup}
+\begin{itemize}
+\item Model belief as $bel(\x_t)=\mathcal{N}(\bmu_t,\bSigma_t)$.
+\item Requires Gaussian prior $\x_0\sim\mathcal{N}(\bmu_0,\bSigma_0)$.
+\item Prediction and correction must keep the belief Gaussian.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Intro paragraph defining Gaussian belief.
+% --- Original text end ---
+
+\begin{frame}{Linear-Gaussian Assumptions}
+\begin{itemize}
+\item Dynamics: $\x_t=A_t\x_{t-1}+B_t\bu_t+\bm\epsilon_t$, $\bm\epsilon_t\sim\mathcal{N}(0,\bm R_t)$.
+\item Measurement: $\z_t=C_t\x_t+\bm\delta_t$, $\bm\delta_t\sim\mathcal{N}(0,\bm Q_t)$.
+\item These affine models guarantee Gaussian beliefs after each update.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Section on KF assumptions and noise models.
+% --- Original text end ---
+
+\begin{frame}{Kalman Filter Recursion}
+\begin{itemize}
+\item Prediction: $\bar{\bmu}_t=A_t\bmu_{t-1}+B_t\bu_t$, $\bar{\bSigma}_t=A_t\bSigma_{t-1}A_t^\top+\bm R_t$.
+\item Kalman gain: $K_t=\bar{\bSigma}_t C_t^\top(C_t\bar{\bSigma}_t C_t^\top+\bm Q_t)^{-1}$.
+\item Correction: $\bmu_t=\bar{\bmu}_t+K_t(\z_t-C_t\bar{\bmu}_t)$, $\bSigma_t=(I-K_tC_t)\bar{\bSigma}_t$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Algorithm  Kalman filter steps.
+% --- Original text end ---
+
+\begin{frame}{Kalman Filter Insights}
+\begin{itemize}
+\item Prediction uses affine/Gaussian closure: no integrals required.
+\item Correction equals product of Gaussians; matrix inversion lemma yields standard form.
+\item Efficient for continuous states but inherently unimodal and linearized.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Practical considerations and derivation commentary.
+% --- Original text end ---
+
+\begin{frame}{Toward Nonlinear Models}
+\begin{itemize}
+\item Many robots have nonlinear motion and sensing ($g,h$ functions).
+\item Extended Kalman Filter (EKF) keeps Gaussian beliefs but linearizes models.
+\item Unscented Kalman Filter (UKF) avoids explicit Jacobians via sigma points.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Transition into EKF/UKF sections.
+% --- Original text end ---
+
+\begin{frame}{EKF Prediction}
+\begin{itemize}
+\item Nonlinear dynamics: $\x_t=g(\bu_t,\x_{t-1})+\bm\epsilon_t$.
+\item Linearize about $\bmu_{t-1}$: Jacobian $G_t=\nabla_{\x}g(\bu_t,\bmu_{t-1})$.
+\item Updates: $\bar{\bmu}_t=g(\bu_t,\bmu_{t-1})$, $\bar{\bSigma}_t=G_t\bSigma_{t-1}G_t^\top+\bm R_t$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% EKF prediction derivation using Taylor expansion.
+% --- Original text end ---
+
+\begin{frame}{EKF Correction}
+\begin{itemize}
+\item Measurement linearized at $\bar{\bmu}_t$: $H_t=\nabla_{\x}h(\bar{\bmu}_t)$.
+\item Gain: $K_t=\bar{\bSigma}_t H_t^\top(H_t\bar{\bSigma}_t H_t^\top+\bm Q_t)^{-1}$.
+\item Update: $\bmu_t=\bar{\bmu}_t+K_t(\z_t-h(\bar{\bmu}_t))$, $\bSigma_t=(I-K_tH_t)\bar{\bSigma}_t$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% EKF measurement update equations.
+% --- Original text end ---
+
+\begin{frame}{EKF Caveats}
+\begin{itemize}
+\item Accuracy hinges on first-order Taylor approximation; large nonlinearities can diverge.
+\item Still enforces a single Gaussian, so multi-modal beliefs are missed.
+\item Requires Jacobians, which may be tedious or brittle for complex sensors.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% EKF practical considerations.
+% --- Original text end ---
+
+\begin{frame}{Unscented Kalman Filter}
+\begin{itemize}
+\item Represent Gaussian via sigma points that capture mean/covariance statistics.
+\item Propagate each sigma point through nonlinear $g$ and $h$ exactly.
+\item Recombine weighted points to recover updated Gaussian without Jacobians.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% UKF overview section.
+% --- Original text end ---
+
+\begin{frame}{Exercises}
+\begin{itemize}
+\item HW4 Problem 1: implement EKF localization with known landmark map.
+\item Practice linear feature extraction plus EKF measurement models.
+\item Repository: \url{https://github.com/PrinciplesofRobotAutonomy/AA274A_HW4}.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Exercise description for EKF localization.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Parametric Filtering}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Linear-Gaussian models yield the classic Kalman filter with exact Gaussian updates.
+\item EKF and UKF extend the idea to nonlinear robots while retaining Gaussian state beliefs.
+\item Watch for model mismatch and unimodal limits when deploying in the field.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Summary tying KF, EKF, and UKF guidance.
+% --- Original text end ---
+
+\end{document}

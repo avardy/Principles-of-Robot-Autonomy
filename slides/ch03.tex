@@ -1,0 +1,257 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 03 - Closed-Loop Motion Planning \& Control}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Closing the Loop}
+\begin{itemize}
+\item Chapter 2 emphasized open-loop planners that pre-compute inputs from models.
+\item Those plans meet objectives like time-optimal point-to-point motion, but ignore new data.
+\item This chapter upgrades robustness by synthesizing feedback controllers directly.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% The previous chapter introduced the concepts of \textit{open-loop} and \textit{closed-loop} control laws, and then dove into techniques for designing open-loop control laws for robots based on optimal control and differential flatness. These techniques are useful for determining control inputs that accomplish different objectives, such as ``move from point A to point B in a minimal amount of time while satisfying some constraints''. Additionally, computing open-loop control laws is often computationally less challenging that computing closed-loop control laws.
+% However in practice open-loop control is not very robust since observations are not leveraged to update the control input. One solution to this robustness problem is to convert the open-loop control law into a closed-loop control law, typically referred to as \textit{trajectory tracking controllers}. Another solution is to not use any open-loop techniques but rather to directly synthesize a closed-loop control law, for example by performing a \textit{Lyapunov stability analysis}.
+% This chapter will introduce techniques for synthesizing closed-loop controllers in both of these ways.
+% --- Original text end ---
+
+\begin{frame}{Definition: Closed-Loop Control}
+\begin{itemize}
+\item Closed-loop (feedback) laws depend on the current state, not just initial conditions.
+\item Policies map measurements and time to inputs, enabling reactive behavior.
+\item This structure counters modeling errors, disturbances, and state-estimation drift.
+\end{itemize}
+\pause
+\[
+\bm{u}(t) = \pi(\x(t), t)
+\]
+\end{frame}
+% --- Original text start ---
+% Recall from the previous chapter that open-loop control laws are defined as a function of time for a given initial condition. In contrast, closed-loop control laws are a function of the \textit{current} state, and therefore are reactive.
+% \begin{definition}[Closed-loop Control]
+% If the control law is a function of the state and time, i.e., 
+% \begin{equation}
+% \bm{u}(t) = \pi(\x(t), t )    
+% \end{equation}
+% then the control is said to be in closed-loop form.
+% \end{definition}
+% Closed-loop controllers (also sometimes referred to as \textit{feedback controllers} or \textit{policies}), are much more robust than open-loop controllers. For example, suppose a controller needs to be designed to make a wheeled robot move from point to point. If the model used for open-loop controller design wasn't perfect, if the initial state was not perfectly known, or if external disturbances affected the system (e.g. wheel slipping), then the robot would not exactly reach its desired destination. Alternatively, a closed-loop control law can continuously correct for these errors since it is always taking in new information.
+% --- Original text end ---
+
+\begin{frame}{Why Feedback Matters}
+\begin{itemize}
+\item Disturbances (slip, pushes, parameter drift) quickly knock open-loop plans off course.
+\item Feedback continually re-evaluates error, so the robot corrects as it moves.
+\item Goal: transform planned trajectories into robust motion via tracking or direct synthesis.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Closed-loop controllers ... are much more robust than open-loop controllers... Alternatively, a closed-loop control law can continuously correct for these errors since it is always taking in new information.
+% --- Original text end ---
+
+\begin{frame}{Trajectory Tracking Workflow}
+\begin{itemize}
+\item Step 1: Solve an open-loop problem to obtain desired $\x_d(t)$ and $\bm{u}_d(t)$.
+\item Step 2: Design feedback that keeps the actual state near the reference.
+\item Resulting controller blends feedforward plans with corrective action.
+\end{itemize}
+\pause
+\[
+\bm{u}(t) = \bm{u}_d(t) + \pi(\x(t)-\x_d(t), t)
+\]
+\end{frame}
+% --- Original text start ---
+% One common approach ... consists of two steps: (1) Use open-loop control techniques to design a desired trajectory $\x_d(t)$ and corresponding control $\bm{u}_d(t)$. (2) Design a closed-loop control law that is designed to make sure the system stays close to the desired trajectory... control law ... $\bm{u}(t) =  \bm{u}_d(t)+\pi(\x(t)-\x_d(t),t)$.
+% --- Original text end ---
+
+\begin{frame}{Design Choices for Tracking Feedback}
+\begin{itemize}
+\item \textbf{Geometric}: exploit model structure; difficult to generalize or analyze formally.
+\item \textbf{Linearization}: linearize along the trajectory or feedback-linearize, then apply LQR-style designs.
+\item \textbf{Nonlinear}: apply Lyapunov tools tailored to the system.
+\item \textbf{Optimization-based}: solve repeated optimal control problems online (e.g., MPC).
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% The previous chapter discussed techniques ... there are several approaches for designing the feedback component $\pi(\x(t)-\x_d(t),t)$: Geometric approaches ... Linearization based approaches ... Non-linear control techniques ... Optimization-based feedback control laws ... One common optimization-based approach ... MPC.
+% --- Original text end ---
+
+\begin{frame}{Flat Systems Track Easily}
+\begin{itemize}
+\item Differentially flat systems admit outputs whose derivatives span the state and inputs.
+\item With dynamic feedback and coordinate changes, every flat system can be linearized.
+\item The linearized form uses a virtual input $\bm{w}$ acting on high-order derivatives of $\mathbf{z}$.
+\end{itemize}
+\pause
+\[
+\z^{(q+1)} = \bm{w}
+\]
+\end{frame}
+% --- Original text start ---
+% For differentially flat systems ... every flat system can be linearized via dynamic feedback and a coordinate change to yield ... $\z^{(q+1)} = \bm{w}$.
+% --- Original text end ---
+
+\begin{frame}{Error Dynamics and Gains}
+\begin{itemize}
+\item Let $\bm{e} = \z - \z_d$ collect flat-output errors and their derivatives.
+\item Choose diagonal gain matrices $K_j$ that shape each derivative order.
+\item Plugging the feedback into the linearized system yields stable error ODEs when gains give desirable poles.
+\end{itemize}
+\pause
+\[
+\bm{e}^{(q+1)} + \sum_{j=0}^q K_j \bm{e}^{(j)} = 0
+\]
+\end{frame}
+% --- Original text start ---
+% Let the error ... and consider a closed-loop control law ... $w_i(t) = w_{i,d}(t) - \sum_{j=0}^q k_{i,j} e_i^{(j)}(t)$ ... This set of linear ODEs describes the dynamics of the error ... choose the gains ... guarantee this system is stable.
+% --- Original text end ---
+
+\begin{frame}{Example: Extended Unicycle Tracking}
+\begin{itemize}
+\item Flat outputs are $(x,y)$, so $\ddot{\mathbf{z}} = J [a \ \omega]^\top$ with input Jacobian $J$.
+\item Use PD terms on position and velocity errors to define $w_1$ and $w_2$.
+\item Recover real inputs by solving the linear system $J[a \ \omega]^\top = [w_1 \ w_2]^\top$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Consider the dynamically extended unicycle model ... This system is differentially flat ... expressed as ... $\ddot{\z} = J [a \ \omega]^\top$ ... controller ... definitions of $w_1$, $w_2$ ... The control inputs ... computed by solving the linear system ... assuming that $J$ is full rank.
+% --- Original text end ---
+
+\begin{frame}{Beyond Tracking}
+\begin{itemize}
+\item Instead of reference-following, solve closed-loop optimal control problems directly (HJB, dynamic programming).
+\item Regulation tasks aim to drive the state to an equilibrium using controllers like LQR.
+\item For nonlinear systems, Lyapunov analysis is a versatile route to provably stable controllers.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Trajectory tracking is just one example ... Instead, it may be preferred to just directly solve a closed-loop optimal control problem ... Another common closed-loop control problem is to drive to or stabilize the system about a particular state ... For systems with linear dynamics ... LQR ... for nonlinear systems ... Lyapunov analysis.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Lyapunov Stability}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Concept Recap}
+\begin{itemize}
+\item A Lyapunov function $V(\mathbf{x})$ acts like an energy measure: $V \ge 0$ and $V=0$ only at the goal.
+\item If $\dot{V} \le 0$ along trajectories, the system does not gain energy; if $\dot{V} < 0$, it converges.
+\item Example: For $\dot{x} = -kx$, choose $V = \tfrac{1}{2}x^2$ so $\dot{V} = -kx^2 < 0$, proving stability.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% A Lyapunov stability analysis is a common tool for analyzing the stability of nonlinear systems... can be thought of as a measure of the ``energy'' ... if the energy does not increase ... The most challenging part ... provides nice theoretical guarantees ...
+% --- Original text end ---
+
+\begin{frame}{Pose Stabilization Setup}
+\begin{itemize}
+\item Unicycle dynamics use forward speed $v$ and turn rate $\omega$ to move in the plane.
+\item Goal: drive $(x,y,\theta)$ to the origin using feedback.
+\item Switching coordinates simplifies controller design later.
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+\dot{x} &= v\cos\theta,& \dot{y} &= v\sin\theta,& \dot{\theta} &= \omega
+\end{aligned}
+\]
+\pause
+\begin{center}
+\includegraphics[width=0.5\linewidth]{../tex/figs/ch03_figs/unicycle_cartesian.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Consider a robot ... unicycle robot model ... equations ... Figure \ref{fig:posecartesian} ... The objective is to design a closed-loop controller that will drive the robot the origin ...
+% --- Original text end ---
+
+\begin{frame}{Polar Coordinates for Control}
+\begin{itemize}
+\item Define distance $\rho$, bearing error $\alpha$, and heading $\delta$ relative to the origin.
+\item Polar dynamics reveal how $v$ and $\omega$ affect convergence in radial and angular terms.
+\item These variables set up the Lyapunov analysis cleanly.
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+\rho &= \sqrt{x^2 + y^2},& \alpha &= \mathrm{atan2}(y,x) - \theta + \pi,& \delta &= \alpha + \theta
+\end{aligned}
+\]
+\pause
+\begin{center}
+\includegraphics[width=0.5\linewidth]{../tex/figs/ch03_figs/unicycle_polar.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% To make the controller design easier ... defining $\rho$, $\alpha$, $\delta$ ... Figure \ref{fig:polarcoord} ... Using the newly defined polar coordinates ... dynamics equations ...
+% --- Original text end ---
+
+\begin{frame}{Polar Dynamics}
+\begin{itemize}
+\item Radial distance shrinks proportional to forward speed and the cosine of the heading error.
+\item Angular errors evolve under both translational motion and commanded turn rate.
+\item These equations feed into the Lyapunov derivative.
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+\dot{\rho} &= -v\cos\alpha,& \dot{\alpha} &= \tfrac{v\sin\alpha}{\rho} - \omega,& \dot{\delta} &= \tfrac{v\sin\alpha}{\rho}
+\end{aligned}
+\]
+\end{frame}
+% --- Original text start ---
+% Using the newly defined polar coordinates ... dynamics equations ... $\dot{\rho} = -v\cos\alpha$, etc.
+% --- Original text end ---
+
+\begin{frame}{Lyapunov Function \& Control Law}
+\begin{itemize}
+\item Candidate energy: $V = \tfrac{1}{2}\rho^2 + \tfrac{1}{2}(\alpha^2 + k_3 \delta^2)$.
+\item Choose forward speed and turn rate to damp both radial and angular errors.
+\item Gains $k_1,k_2,k_3>0$ set convergence rates.
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+ v &= k_1 \rho \cos\alpha, &
+ \omega &= k_2 \alpha + k_1 \frac{\sin\alpha \cos\alpha}{\alpha}(\alpha + k_3 \delta)
+\end{aligned}
+\]
+\end{frame}
+% --- Original text start ---
+% Consider the following candidate Lyapunov function ... and consider the following closed-loop control law ... expressions for $v$ and $\omega$ with gains $k_1,k_2,k_3>0$.
+% --- Original text end ---
+
+\begin{frame}{Showing Stability}
+\begin{itemize}
+\item Differentiate $V$ along trajectories and substitute the closed-loop dynamics.
+\item Algebra reduces the derivative to a negative-definite sum when $k_1,k_2>0$.
+\item Therefore the pose-stabilizing controller guarantees convergence to the origin.
+\end{itemize}
+\pause
+\[
+\dot{V} = -k_1 \rho^2 \cos^2\alpha - k_2 \alpha^2 < 0
+\]
+\end{frame}
+% --- Original text start ---
+% The candidate Lyapunov function ... Taking the derivative ... substituting dynamics and control laws ... leads to $\dot{V} = -k_1 \rho^2 \cos^2 \alpha - k_2 \alpha^2$, showing the system will converge to the origin.
+% --- Original text end ---
+
+\begin{frame}{Exercises}
+\begin{itemize}
+\item HW1 Problem 2: implement the Lyapunov-based pose stabilizer for the unicycle.
+\item HW1 Problem 3: implement the differential-flatness trajectory tracker for the extended unicycle.
+\item Repository link: \url{https://github.com/PrinciplesofRobotAutonomy/AA274A_HW1}
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Both exercises for this chapter can be found in the online repository ... Problem 2: Pose Stabilization ... Problem 3: Trajectory Tracking ... repository link.
+% --- Original text end ---
+
+\end{document}

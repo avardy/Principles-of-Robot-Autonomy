@@ -1,0 +1,226 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 08 - Camera Models and Calibration}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Camera Models?}
+\begin{itemize}
+\item Cameras deliver rich perception but require geometric models to relate pixels to 3D points.
+\item Perspective projection ties world coordinates to image coordinates via intrinsic/extrinsic parameters.
+\item Calibration estimates those parameters so robots can reason about scene structure.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Chapter intro motivating vision-based perception and calibration goals.
+% --- Original text end ---
+
+\begin{frame}{Perspective Projection Roadmap}
+\begin{itemize}
+\item Express scene points either in world frame $P_W$ or camera frame $P_C$.
+\item Map $P_C \rightarrow p$ using the pinhole model; map $P_W \rightarrow P_C$ via rigid transforms.
+\item Compose the two to send $P_W$ straight to pixels once intrinsic/extrinsic parameters are known.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Overview of Section on perspective projection and coordinate mappings.
+% --- Original text end ---
+
+\begin{frame}{Camera Coordinates to Image Plane}
+\begin{itemize}
+\item Pinhole equations: $x = f X_C / Z_C$, $y = f Y_C / Z_C$.
+\item Re-center pixel axes at the lower corner of the imager to obtain $(\tilde{x}, \tilde{y})$.
+\item Convert to pixels via $u = \alpha X_C/Z_C + u_0$, $v = \beta Y_C/Z_C + v_0$.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.55\linewidth]{../tex/figs/ch08_figs/imageframe.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Mapping PC to pixel coordinates and Figure \ref{fig:camera_coordinates}.
+% --- Original text end ---
+
+\begin{frame}{Homogeneous Coordinates}
+\begin{itemize}
+\item Augment points with a scale (e.g., $P_C^h = (X_C, Y_C, Z_C, 1)$) to linearize projection.
+\item Camera matrix $K = \begin{bmatrix} \alpha & \gamma & u_0 \\ 0 & \beta & v_0 \\ 0 & 0 & 1 \end{bmatrix}$ gathers intrinsics.
+\item Linear map: $p^h = [K \; 0] P_C^h$, enabling compact matrix notation.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Homogeneous coordinate discussion and camera intrinsic matrix definition.
+% --- Original text end ---
+
+\begin{frame}{World to Camera Transform}
+\begin{itemize}
+\item Relate frames with rotation $R$ and translation $t$: $P_C = t + R P_W$.
+\item Rotation matrix columns encode camera axes in world coordinates.
+\item Homogeneous form: $\begin{bmatrix} P_C \\ 1 \end{bmatrix} = \begin{bmatrix} R & t \\ 0 & 1 \end{bmatrix} \begin{bmatrix} P_W \\ 1 \end{bmatrix}$.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.62\linewidth]{../tex/figs/ch08_figs/world2camera.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Mapping world to camera coordinates and Figure \ref{fig:Pc2Pw}.
+% --- Original text end ---
+
+\begin{frame}{Full Projection Model}
+\begin{itemize}
+\item Combine mappings to get $p^h = K [R \; t] P_W^h$.
+\item Intrinsics (5 DOF) live in $K$; extrinsics (6 DOF) come from $R$ and $t$.
+\item Total projection matrix $M = K [R \; t]$ encodes 11 parameters up to scale.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.75\linewidth]{../tex/figs/ch08_figs/pinholecamera2.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Equation (\ref{eq:Pw2uvhomo}) and Figure \ref{fig:pinhole_cam}.
+% --- Original text end ---
+
+\begin{frame}{Direct Linear Calibration Overview}
+\begin{itemize}
+\item Goal: estimate $M$ from $n$ pixel/world correspondences $(p_i, P_{W,i})$.
+\item Write $p_i^h = M P_{W,i}^h$ and enforce via stacked linear constraints.
+\item Need at least 6 correspondences, but use more to fight noise.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Introduction of direct linear method (DLT) and homography definition.
+% --- Original text end ---
+
+\begin{frame}{Step 1: Build Linear System}
+\begin{itemize}
+\item Decompose $M$ into rows $m_1, m_2, m_3$ and write $u_i (m_3 \cdot P_{W,i}^h) - (m_1 \cdot P_{W,i}^h) = 0$.
+\item Stack $2n$ equations as $\tilde{P} m = 0$ with $m$ being the 12-vector of stacked rows.
+\item Form constrained least squares: minimize $\lVert \tilde{P} m \rVert^2$ subject to $\lVert m \rVert^2 = 1$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Derivation of linear equations and equation (\ref{eq:mopt}).
+% --- Original text end ---
+
+\begin{frame}{Reminder: Constrained LS via SVD}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Concept Recap}
+\begin{itemize}
+\item Solve $\min \lVert A x \rVert^2$ with $\lVert x \rVert^2 = 1$ by taking SVD of $A$.
+\item Minimizer is eigenvector of $A^\top A$ with smallest eigenvalue (right singular vector).
+\item Apply this to $\tilde{P}$ to retrieve the homography vector $m$.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Example \ref{ex:constlsq} detailing constrained least squares solution.
+% --- Original text end ---
+
+\begin{frame}{Step 2: Recover Intrinsics/Extrinsics}
+\begin{itemize}
+\item Reshape $m$ into $M$ and perform RQ factorization on its first three columns: $[c_1 \, c_2 \, c_3] = K R$.
+\item Extract translation via $t = K^{-1} c_4$.
+\item Enforce $R$ orthogonality by projecting onto the nearest rotation matrix if needed.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Description of factorization and extraction of K, R, t plus optimization (\ref{eq:Ropt}).
+% --- Original text end ---
+
+\begin{frame}{Planar Calibration (Zhang 2000)}
+\begin{itemize}
+\item Assume calibration points lie on $Z_W = 0$ plane; each image yields homography $\tilde{M}$.
+\item Columns of $\tilde{M}$ give $K r_1$, $K r_2$, and $K t$.
+\item Orthonormality of $r_1$, $r_2$ induces constraints on $K$ shared across all images.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Section introducing Zhang's flexible calibration setup with planar patterns.
+% --- Original text end ---
+
+\begin{frame}{Solving for Intrinsics}
+\begin{itemize}
+\item Define symmetric matrix $B = K^{-\top} K^{-1}$ and vectorize it as $b \in \mathbb{R}^6$.
+\item Each homography adds two linear constraints: $v_{12}^\top b = 0$, $(v_{11} - v_{22})^\top b = 0$.
+\item Stack across images to solve $V b = 0$ via constrained least squares; recover $K$ using closed-form expressions.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Equations (\ref{eq:bconst})--(\ref{eq:B2K}) describing vector b and intrinsic recovery.
+% --- Original text end ---
+
+\begin{frame}{Extrinsics per View}
+\begin{itemize}
+\item With $K$ known, compute $r_1$, $r_2$, $r_3$ from $K^{-1} \tilde{c}_i$ and normalize.
+\item Enforce $r_3 = r_1 \times r_2$; re-orthogonalize via SVD if needed.
+\item Translation follows from $t = K^{-1} \tilde{c}_3 / \lVert K^{-1} \tilde{c}_1 \rVert$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Final step of Zhang method deriving extrinsics and orthonormal rotation.
+% --- Original text end ---
+
+\begin{frame}{Radial Distortion Effects}
+\begin{itemize}
+\item Real lenses bend straight lines (barrel or pincushion), violating pinhole assumptions.
+\item Simple correction: $(u_d, v_d)$ depend on $(u, v)$ via $(1 + k r^2)$ around distortion center $(u_{cd}, v_{cd})$.
+\item Distortion factor $k$ must be calibrated per camera.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch08_figs/lensdistortion.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Radial distortion section and Figure \ref{fig:distortion}.
+% --- Original text end ---
+
+\begin{frame}{Depth from a Single Camera?}
+\begin{itemize}
+\item Perspective projection loses range; $M$ is not invertible without extra cues.
+\item Depth from focus varies $z$ until $P$ is sharp, then uses $1/z + 1/Z = 1/f$.
+\item Stereo pairs triangulate using matched pixels $p$ and $p'$ to recover 3D points.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Section on measuring depth, depth-from-focus, and stereo vision.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Calibration Workflow}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Checklist}
+\begin{itemize}
+\item Capture diverse views of a planar pattern to excite all intrinsic parameters.
+\item Detect correspondences robustly; reject outliers before solving $\tilde{P} m = 0$ or $V b = 0$.
+\item Validate intrinsics by reprojection error and inspect residual distortion before deployment.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Practical guidance implied by calibration sections (data collection, solving, validation).
+% --- Original text end ---
+
+\begin{frame}{Exercises}
+\begin{itemize}
+\item Implement the Zhang-style calibration pipeline (Problem 1: Camera Calibration).
+\item Estimate intrinsic parameters from planar checkerboard imagery.
+\item Repository: \url{https://github.com/PrinciplesofRobotAutonomy/AA274A_HW3}
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Exercise instructions pointing to HW3 Problem 1.
+% --- Original text end ---
+
+\end{document}

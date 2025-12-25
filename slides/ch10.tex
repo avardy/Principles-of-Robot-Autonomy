@@ -1,0 +1,232 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 10 - Image Processing}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Image Processing?}
+\begin{itemize}
+\item Earlier chapters mapped 3D structure; here we decode semantic cues like "what object am I seeing?"
+\item Filtering, feature detection, and descriptors let robots interpret scenes for localization, mapping, and planning.
+\item Treat grayscale images as functions $I(x,y)$; color data extends $I$ to RGB vectors.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Chapter introduction on image processing goals and image-as-function viewpoint.
+% --- Original text end ---
+
+\begin{frame}{Spatial Filtering Basics}
+\begin{itemize}
+\item Spatial filters modify a pixel using neighbors $S_{xy}$ via an operation $F$.
+\item Kernel size $(2N+1)\times(2M+1)$ controls receptive field and smoothing strength.
+\item Linear correlation filters: $I'(x,y) = \sum F(i,j)I(x+i,y+j)$.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch10_figs/spatialfiltering.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Spatial filtering definition and Figure \ref{fig:spatial_filter_concept_fig}.
+% --- Original text end ---
+
+\begin{frame}{Correlation vs. Convolution}
+\begin{itemize}
+\item Convolution flips indices: $I'(x,y) = \sum F(i,j)I(x-i,y-j)$.
+\item Associativity lets us combine smoothing + derivative masks before applying to $I$.
+\item Boundary handling (padding, cropping, wrapping) keeps shapes consistent.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Correlation \eqref{eq:correlation}, convolution \eqref{eq:convolution}, and boundary discussion.
+% --- Original text end ---
+
+\begin{frame}{Indexing and Padding Tricks}
+\begin{itemize}
+\item Implementation often reindexes so the window's top-left aligns with $(x,y)$.
+\item Zero ("same") padding keeps $I'$ the same size as $I$ for varied kernel shapes.
+\item Beware apparent shifts when mixing center vs. top-left indexing schemes.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.58\linewidth]{../tex/figs/ch10_figs/topleftfilter_padding.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Example \ref{ex:padding} on top-left indexing and padding (Figures \ref{fig:topleftfilter}, \ref{fig:paddingfilter}).
+% --- Original text end ---
+
+\begin{frame}{Smoothing Filters}
+\begin{itemize}
+\item Moving average masks blur evenly while preserving brightness via normalization.
+\item Gaussian smoothing weights neighbors by distance: $G_\sigma(x,y) = \frac{1}{2\pi\sigma^2} e^{-(x^2+y^2)/(2\sigma^2)}$.
+\item Use larger $\sigma$ or kernels to suppress noise before differentiation.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.72\linewidth]{../tex/figs/ch10_figs/gaussianfilter.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Moving average, Gaussian filter definition, and Figure \ref{fig:gaussianfilter}.
+% --- Original text end ---
+
+\begin{frame}{Separable Masks}
+\begin{itemize}
+\item Mask $F$ is separable if $F = F_1 * F_2$, reducing complexity from $O(M^2wh)$ to $O(2Mwh)$.
+\item Moving average mask equals an outer product of $[1,1,1]^\top$ and $[1,1,1]$.
+\item Gaussian kernels decompose via $G_\sigma(x,y) = g_\sigma(x) g_\sigma(y)$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Discussion of separable masks and computational savings.
+% --- Original text end ---
+
+\begin{frame}{Image Differentiation Filters}
+\begin{itemize}
+\item Finite differences approximate $\partial I/\partial x$ and $\partial I/\partial y$ in discrete grids.
+\item Sobel masks aggregate neighbors for smoother gradient estimates.
+\item Often smooth $I$ before differentiating to reduce noise amplification.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch10_figs/track_sobel.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Central differences (Eq. \eqref{eq:cendiff}) and Sobel operator matrices.
+% --- Original text end ---
+
+\begin{frame}{Similarity Metrics}
+\begin{itemize}
+\item Correlate windows across views to support stereo/SfM correspondence.
+\item Sum of absolute differences (SAD) is robust to small outliers.
+\item Sum of squared differences (SSD) penalizes large mismatches heavily.
+\end{itemize}
+\pause
+\begin{equation*}
+\begin{aligned}
+SAD &= \sum_{i=-N}^N \sum_{j=-M}^M \lvert I_1(x+i,y+j)-I_2(x'+i,y'+j)\rvert, \\
+SSD &= \sum_{i=-N}^N \sum_{j=-M}^M [I_1(x+i,y+j)-I_2(x'+i,y'+j)]^2
+\end{aligned}
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Similarity measures \eqref{eq:similarity} for correspondence windows.
+% --- Original text end ---
+
+\begin{frame}{Edge Detection: 1D Intuition}
+\begin{itemize}
+\item Noisy differentiation hides true intensity jumps.
+\item Smooth with Gaussian $g_\sigma$ before applying derivative filters.
+\item Associativity lets $(\frac{d}{dx} * g_\sigma)$ act as a single edge kernel.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.55\linewidth]{../tex/figs/ch10_figs/edge_detection.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Figures \ref{fig:noisy} and \ref{fig:gauss} showing smoothing prior to differentiation.
+% --- Original text end ---
+
+\begin{frame}{Edge Detection Pipeline}
+\begin{itemize}
+\item Gaussian smoothing suppresses noise while preserving broad gradients.
+\item Apply derivative filters (e.g., Sobel) in $x$ and $y$.
+\item Enforce thresholds or non-maximum suppression for crisp responses.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.62\linewidth]{../tex/figs/ch10_figs/edge_detection_smooth.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Smoothing + differentiation workflow and Figure \ref{fig:gauss}.
+% --- Original text end ---
+
+\begin{frame}{2D Gradient Magnitude}
+\begin{itemize}
+\item Combined filters $G_{\sigma,x}$ and $G_{\sigma,y}$ yield smoothed derivatives.
+\item Magnitude $\lvert\nabla S\rvert = \sqrt{S_x^2 + S_y^2}$ flags edge strength.
+\item Practical detectors: Sobel, Canny, etc., tuned via thresholds.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.8\linewidth]{../tex/figs/ch10_figs/sobel.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Gradient computation, thresholding, and Figure \ref{fig:sobel}.
+% --- Original text end ---
+
+\begin{frame}{Canny Edge Detector}
+\begin{itemize}
+\item Adds hysteresis thresholding and non-maximum suppression.
+\item Produces thin, well-localized edges with fewer false positives.
+\item Widely used baseline in robotics perception stacks.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.78\linewidth]{../tex/figs/ch10_figs/canny.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Figure \ref{fig:canny} and discussion of accuracy/localization criteria.
+% --- Original text end ---
+
+\begin{frame}{Corner Detection}
+\begin{itemize}
+\item Corners exhibit high gradient variation in all directions.
+\item Harris detector offers rotation and photometric invariance, but not scale invariance.
+\item Scale-aware variants (Harris-Laplacian, SIFT) improve repeatability under zoom/affine changes.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Corner definition, Harris detector properties, motivation for scale-invariant methods.
+% --- Original text end ---
+
+\begin{frame}{Feature Descriptors}
+\begin{itemize}
+\item Describe patches so matches are distinct and repeatable across viewpoint/lighting.
+\item Raw intensity windows lack invariance; modern descriptors include SIFT, SURF, FAST, BRIEF, ORB, BRISK.
+\item Robust descriptors feed tasks like tracking, SLAM, retrieval, and classification.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Descriptor goals (repeatability, distinctiveness) and popular families.
+% --- Original text end ---
+
+\begin{frame}{Exercises}
+\begin{itemize}
+\item Work through HW3 Problem 3 \textit{Linear Filtering} to practice kernel design.
+\item Repository: \url{https://github.com/PrinciplesofRobotAutonomy/AA274A_HW3}.
+\item Explore smoothing vs. sharpening trade-offs on real imagery.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Exercises section referencing HW3 repository and topic.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Image Processing Checklist}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Choose kernels (mean, Gaussian, Sobel) that balance smoothing vs. detail preservation.
+\item Keep implementation details straight: padding rules, separability, combined filters.
+\item Edges, corners, and descriptors must be both distinctive and repeatable for downstream robotics tasks.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Summary of filtering, detection, and descriptor guidance.
+% --- Original text end ---
+
+\end{document}

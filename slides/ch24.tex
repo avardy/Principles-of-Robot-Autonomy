@@ -1,0 +1,238 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 24 - Robot Operating System}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why ROS Middleware?}
+\begin{itemize}
+\item Robot software must coordinate sensors, actuators, and decision loops across heterogeneous hardware.
+\item ROS supplies shared tooling, libraries, and conventions so teams can reuse work instead of rebuilding infrastructure.
+\item Treat ROS as a robotics-focused middleware layer, not a replacement operating system.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% This chapter introduces the fundamentals of the Robot Operating System (ROS)... ROS is a "middleware" ... simplified and consistent manner across a wide variety of robotic platforms.
+% --- Original text end ---
+
+\begin{frame}{Robot Programming Challenges}
+\begin{itemize}
+\item Multitask across many sensor/actuator threads that must exchange data safely.
+\item Provide low-level device access (GPIO, USB, SPI) while supporting C/C++/Python APIs.
+\item Encourage modular OOP design and leverage rich third-party ecosystems plus community support.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Robot programming ... manage many different individual hardware components ... Therefore, the following features are needed ... multitasking, low level device control, high level OOP, third-party libraries.
+% --- Original text end ---
+
+\begin{frame}{Origins of ROS}
+\begin{itemize}
+\item 2007 STAIR project envisioned an open, sharable robotics stack spanning hardware to libraries.
+\item Willow Garage scaled the effort, releasing PR2 platforms and ROS 0.4--1.0 between 2009 and 2010.
+\item OSRF now stewards ROS with LTS distributions (e.g., Indigo) and industry-wide adoption.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Brief history of ROS ... STAIR project ... Willow Garage ... PR2 ... OSRF ... LTS releases ...
+% --- Original text end ---
+
+\begin{frame}{Guiding Principles}
+\begin{itemize}
+\item Keep the platform free/open-source to maximize collaboration.
+\item Ship reusable hardware interfaces and software packages ready for new projects.
+\item Integrate smoothly with existing frameworks such as OpenCV, SLAM stacks, and Gazebo.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% STAIR vision bullet list describing free/open, core components available, and seamless integration.
+% --- Original text end ---
+
+\begin{frame}{Core ROS Capabilities}
+\begin{itemize}
+\item Modularity: encapsulate functionality into nodes and deployable packages.
+\item Message passing: standard pub/sub plumbing connects perception, planning, and control.
+\item Built-in algorithms and thriving community shorten prototyping time for complex robots.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Characteristics of ROS ... modularity, message passing, built-in algorithms, third-party libraries/community.
+% --- Original text end ---
+
+\begin{frame}{Node and Package Modularity}
+\begin{itemize}
+\item Nodes implement focused behaviors that can be developed, tested, and reused independently.
+\item Packages bundle nodes plus config/data so capabilities ship as installable units.
+\item Modular decomposition keeps sprawling robots manageable.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.68\linewidth]{../tex/figs/ch24_figs/ROS_modular.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Modularity description referencing Figure modularity and nodes/packages discussion.
+% --- Original text end ---
+
+\begin{frame}{ROS Communication Model}
+\begin{itemize}
+\item Nodes publish or subscribe to typed messages that flow through named topics.
+\item The master process keeps track of publishers/subscribers so peer-to-peer links can be formed.
+\item Pub/sub decouples producers from consumers, improving scalability across machines.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Robot Programming with ROS ... pub/sub structure ... nodes, messages, topics, master definitions.
+% --- Original text end ---
+
+\begin{frame}{Publish/Subscribe Graph}
+\begin{itemize}
+\item Visualize ROS as chat rooms where sensing, perception, and planning modules exchange data.
+\item Each topic enforces a single message type, so interfaces stay explicit.
+\item Adding nodes simply means joining the right chat rooms.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{../tex/figs/ch24_figs/pub_sub.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Figure showing pub/sub model and description of chat room analogy.
+% --- Original text end ---
+
+\begin{frame}{Nodes in Practice}
+\begin{itemize}
+\item Treat every capability (camera, edge detection, path planning) as a separate node.
+\item Nodes can publish sensor products, consume higher-level cues, or both.
+\item Reuse nodes across robots by exposing clean topic interfaces.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Node definition plus example with camera, edge_detection, path_planning nodes.
+% --- Original text end ---
+
+\begin{frame}{Messages and Types}
+\begin{itemize}
+\item Messages are simple data structures with typed fields (primitive, arrays, or custom types).
+\item Chain complex data by nesting types (e.g., SensorPacket with arrays of SensorData).
+\item ROS ships standard primitives (int32, float64, time, etc.) for cross-language safety.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definition of messages, example definitions, and Table of built-in message types.
+% --- Original text end ---
+
+\begin{frame}{Topics and rostopic Tools}
+\begin{itemize}
+\item Topics are named buses for one-way streaming; publishers and subscribers must match message types.
+\item Use \texttt{rostopic list/echo/hz} to inspect active traffic and diagnose timing issues.
+\item Reserve services or actions for request-response interactions that topics cannot express cleanly.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Topics definition plus rostopic commands list and discussion of unidirectional streaming.
+% --- Original text end ---
+
+\begin{frame}{ROS Master Role}
+\begin{itemize}
+\item Single master assigns network addresses and helps nodes locate each other.
+\item Runs anywhere on the network; after discovery, nodes communicate peer-to-peer.
+\item Keep only one master alive at a time to avoid conflicting registries.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Master definition, responsibilities, remote hosting, single master per system.
+% --- Original text end ---
+
+\begin{frame}{Publisher Node Pattern}
+\begin{itemize}
+\item Initialize the node, advertise a topic with \texttt{rospy.Publisher}, and honor queue limits.
+\item Enforce loop timing with \texttt{rospy.Rate} and guard with \texttt{rospy.is\_shutdown()}.
+\item Log to \texttt{rosout} (\texttt{rospy.loginfo}) so console output is aggregated for debugging.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% talker.py walkthrough covering init_node, Publisher, Rate, loginfo, loop publishing strings.
+% --- Original text end ---
+
+\begin{frame}{Subscriber Node Pattern}
+\begin{itemize}
+\item Register callbacks via \texttt{rospy.Subscriber} to process messages asynchronously.
+\item Use \texttt{rospy.spin()} to keep the process alive while callbacks handle incoming data.
+\item Mirror talker/listener structure to test pub/sub wiring quickly.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% listener.py example describing callback, Subscriber, spin.
+% --- Original text end ---
+
+\begin{frame}{Launch Files}
+\begin{itemize}
+\item \texttt{.launch} XML documents start masters, nodes, and parameter settings in one shot.
+\item Use the \texttt{<node name=... pkg=... type=...>} tag to override executable names and supply args.
+\item Organize launch files inside each package's \texttt{launch/} folder for reuse.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Launch file definition, syntax examples with attributes like args and respawn.
+% --- Original text end ---
+
+\begin{frame}{Catkin Workspace}
+\begin{itemize}
+\item \texttt{catkin} builds interdependent ROS packages via \texttt{catkin\_make}.
+\item Standard workspace structure (src, build, devel) plus auto-generated \texttt{CMakeLists.txt} and \texttt{package.xml}.
+\item Rebuild whenever you add packages or change message/service definitions.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch24_figs/catkin_ws.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% catkin workspace description and Figure catkin.
+% --- Original text end ---
+
+\begin{frame}{Debugging Toolkit}
+\begin{itemize}
+\item \texttt{rostopic} introspects live streams; \texttt{rospy.loginfo} feeds \texttt{rqt\_console}.
+\item \texttt{rosbag} records/replays topics for deterministic regression testing.
+\item Fall back to Python's \texttt{pdb} when you need step-by-step inspection.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Debugging section listing rostopic, rospy.loginfo, rosbag, pdb.
+% --- Original text end ---
+
+\begin{frame}{Gazebo Simulation}
+\begin{itemize}
+\item Gazebo delivers high-fidelity physics, sensor models, and realistic scenes for testing.
+\item Use \texttt{gazebo\_ros\_pkgs} to bridge simulated robots with ROS nodes seamlessly.
+\item Deploy simulation throughout development to validate algorithms before hardware trials.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.65\linewidth]{../tex/figs/ch24_figs/Gazebo.PNG}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Gazebo description and figure reference.
+% --- Original text end ---
+
+\begin{frame}{Reminder: ROS Habits}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Modularize functionality into nodes/packages and connect them through typed topics.
+\item Leverage launch files, catkin, and tooling to manage growing deployments.
+\item Prototype and debug in simulation (Gazebo, rosbag) before rolling onto hardware.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Chapter summary emphasizing ROS modularity, tooling, and simulation/development practices.
+% --- Original text end ---
+
+\end{document}

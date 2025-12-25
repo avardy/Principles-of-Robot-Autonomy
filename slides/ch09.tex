@@ -1,0 +1,158 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 09 - Stereo Vision and SFM}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Multiple Views?}
+\begin{itemize}
+\item Single calibrated images cannot recover depth without extra assumptions.
+\item Stereo and structure-from-motion (SFM) exploit multiple viewpoints to infer 3D structure.
+\item Cameras offer dense, low-cost measurements that complement active ranging sensors.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Chapter intro motivating stereo vision and structure-from-motion for 3D recovery.
+% --- Original text end ---
+
+\begin{frame}{Stereo Pipeline}
+\begin{itemize}
+\item Acquire synchronized images from two cameras with known baselines.
+\item Fuse images by finding correspondences, then reconstruct depth via triangulation.
+\item Disparity (horizontal shift) encodes range: larger disparity means closer objects.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Overview of stereo vision steps (fusion and reconstruction) and disparity intuition.
+% --- Original text end ---
+
+\begin{frame}{Epipolar Geometry}
+\begin{itemize}
+\item Points $P$, $p$, $p'$ and camera centers form an epipolar plane.
+\item Each image point lies on an epipolar line through its epipole; reduce correspondence search to 1D.
+\item Fundamental matrix $F$ encodes this constraint: $p^\top F p' = 0$.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch09_figs/stereo.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Epipolar constraint explanation and Figure \ref{fig:epi}.
+% --- Original text end ---
+
+\begin{frame}{Fundamental Matrix Details}
+\begin{itemize}
+\item $F = K^{-\top} E K'^{-1}$ with $E = [t]_\times R$ captures relative pose and intrinsics.
+\item Estimate $F$ from $n \geq 8$ correspondences by solving $Wf = 0$ under $\lVert f \rVert = 1$.
+\item Enforce rank-2 by SVD projection to nearest singular matrix.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Fundamental matrix expression and least-squares estimation (Eq. \ref{eq:fopt}).
+% --- Original text end ---
+
+\begin{frame}{Image Rectification}
+\begin{itemize}
+\item Warp images so epipolar lines become horizontal and aligned.
+\item Reduces correspondence search to line scans and simplifies disparity computation.
+\item Conceptually equivalent to rotating cameras about their optical centers.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.65\linewidth]{../tex/figs/ch09_figs/rectification.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Image rectification discussion and Figure \ref{fig:rect}.
+% --- Original text end ---
+
+\begin{frame}{Correspondence Challenges}
+\begin{itemize}
+\item Occlusions hide features from one camera; repetitive textures confuse matching.
+\item Photometric differences or lens distortions degrade similarity metrics.
+\item Robust stereo stacks priors (smoothness, uniqueness) with epipolar constraints.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Paragraph on correspondence problem difficulties (occlusions, repetitive patterns, distortions).
+% --- Original text end ---
+
+\begin{frame}{Triangulation and Disparity}
+\begin{itemize}
+\item With rectified images and baseline $b$, depth follows $z = \frac{bf}{p_u - p'_u}$.
+\item Small disparity implies far objects; large disparity marks nearby geometry.
+\item Baseline must balance accuracy (larger $b$) against visibility overlap.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.74\linewidth]{../tex/figs/ch09_figs/triangulation.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Triangulation derivation (Figure \ref{fig:recttri}) and disparity definition.
+% --- Original text end ---
+
+\begin{frame}{Disparity Maps}
+\begin{itemize}
+\item Compute pixel-wise disparity to create a dense depth proxy.
+\item Bright regions correspond to large disparities (close objects); dark to distant geometry.
+\item Holes reveal occlusions where no correspondence exists.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.8\linewidth]{../tex/figs/ch09_figs/disparitymap.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Figure \ref{fig:disparity} description of disparity map interpretation.
+% --- Original text end ---
+
+\begin{frame}{Structure From Motion (SFM)}
+\begin{itemize}
+\item Single moving camera captures multiple views; intrinsics stay fixed, extrinsics vary per frame.
+\item Need to solve for both 3D points $P_j$ and camera matrices $M_k$ from $p_{j,k}^h = M_k P_j^h$.
+\item Scale remains ambiguous without extra cues; only relative structure is recovered.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.65\linewidth]{../tex/figs/ch09_figs/sfm.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% SFM overview and Figure \ref{sfm}.
+% --- Original text end ---
+
+\begin{frame}{Applications \\ Visual Odometry}
+\begin{itemize}
+\item Visual odometry estimates camera motion by chaining SFM over time.
+\item Common on planetary rovers where wheel slip breaks encoder-only odometry.
+\item Depth + motion estimates enable mapping, localization, and obstacle avoidance.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Section on visual odometry applications of SFM.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Stereo/SFM Checklist}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Concept Recap}
+\begin{itemize}
+\item Calibrate both cameras (intrinsics + extrinsics) before enforcing $p^\top F p' = 0$.
+\item Rectify images to simplify matching, then validate depth via disparity maps.
+\item For SFM/visual odometry, monitor scale drift and fuse extra sensors when available.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Key takeaways from stereo and SFM sections.
+% --- Original text end ---
+
+\end{document}

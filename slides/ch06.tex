@@ -1,0 +1,255 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 06 - Sampling-Based Motion Planning}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{From Roadmaps to Sampling}
+\begin{itemize}
+\item Chapter 05 relied on precomputed maps of $C_{free}$ before running graph search.
+\item Sampling-based planners probe the configuration space lazily via a collision checker.
+\item They shine when modeling every obstacle cell upfront is infeasible or wasteful.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Chapter intro motivating sampling-based planners vs grid/combinatorial approaches.
+% --- Original text end ---
+
+\begin{frame}{Key Ingredients}
+\begin{itemize}
+\item Random sampler proposes configurations; admissibility decided by a collision module.
+\item Incrementally build a roadmap or tree rather than exhaustively enumerating $C_{free}$.
+\item Trade computation (sampling + checking) for flexibility across robot models.
+\end{itemize}
+\pause
+\begin{itemize}
+\item Cannot certify infeasibility; success hinges on enough samples and well-tuned parameters.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Overview of sampling-based advantages/disadvantages and collision checker role.
+% --- Original text end ---
+
+\begin{frame}{Probabilistic Roadmap (PRM)}
+\begin{itemize}
+\item Sample $n$ configurations $q_i$ uniformly or with heuristics.
+\item Run the collision checker, discard infeasible samples.
+\item Connect nearby vertices (within radius $r$) if the straight line segment is collision-free.
+\end{itemize}
+\pause
+\begin{itemize}
+\item Once $G=(V,E)$ is built, attach $q_I,q_G$ and call your favorite graph search.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% PRM algorithm outline and roadmap description.
+% --- Original text end ---
+
+\begin{frame}{PRM Connectivity Trade-offs}
+\begin{itemize}
+\item Larger $r$ improves connectivity but explodes edge count and collision-check effort.
+\item Smaller $r$ risks disconnected components and missed narrow passages.
+\item Multi-query settings justify dense sampling because the roadmap is reused.
+\item Environment changes invalidate the roadmap, forcing a rebuild from scratch.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Discussion on choosing radius r, sample counts, and multi-query reuse.
+% --- Original text end ---
+
+\begin{frame}{PRM Example}
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch06_figs/prm.png}
+\end{center}
+\pause
+\begin{itemize}
+\item Random vertices cover $C_{free}$ and pink path illustrates graph-search output.
+\item Sparse, uniform sampling keeps the roadmap tractable yet expressive.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Figure \ref{fig:prm-graph} caption description.
+% --- Original text end ---
+
+\begin{frame}{Rapidly-Exploring Random Trees (RRT)}
+\begin{itemize}
+\item Initialize tree $T$ at $q_I$.
+\item Sample $q$ in $C$ and find nearest vertex $q_{near}$.
+\item Steer toward $q$ to obtain $q_{new}$ while staying in $C_{free}$.
+\item Add $q_{new}$ and edge $(q_{near}, q_{new})$ to $T$.
+\end{itemize}
+\pause
+\begin{itemize}
+\item Occasionally bias the sampler toward $q_G$ to hasten completion.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% RRT algorithm description including tree initialization and steps.
+% --- Original text end ---
+
+\begin{frame}{Voronoi Bias Intuition}
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch06_figs/rrt.png}
+\end{center}
+\pause
+\begin{itemize}
+\item Frontier nodes own large Voronoi regions, so random samples likely extend the tree outward.
+\item Supports fast single-query exploration without blanketing the entire space.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Figure \ref{fig:rrt-graph} showing exploration tree and Voronoi bias explanation.
+% --- Original text end ---
+
+\begin{frame}{RRT Variants}
+\begin{itemize}
+\item RRT*: rewires locally to minimize path cost, achieving asymptotic optimality.
+\item RRT-Connect: grows trees from $q_I$ and $q_G$ simultaneously until they meet.
+\item Parameter choices (step sizes, goal bias) govern exploration vs exploitation.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Paragraph describing RRT*, RRT-Connect, and sampling tweaks.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Collision Checking Budget}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Concept Recap}
+\begin{itemize}
+\item Every edge validation usually samples multiple intermediate poses.
+\item Savings from lazy roadmaps or limited radii directly reduce collision-check calls.
+\item Profile collision queries early; they dominate runtime in cluttered worlds.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Discussion noting collision checker cost and lazy validation motivation.
+% --- Original text end ---
+
+\begin{frame}{Asymptotic Guarantees}
+\begin{itemize}
+\item With bounded $C$ and constant $r$, PRM and RRT are probabilistically complete.
+\item PRM can converge to optimal cost if $r$ scales appropriately with $n$.
+\item Standard RRT may remain suboptimal with nonzero probability.
+\item Analyze large-$n$ behavior to reason about convergence rather than finite certificates.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Theoretical results for PRM/RRT completeness and optimality.
+% --- Original text end ---
+
+\begin{frame}{FMT$^*$ Overview}
+\begin{itemize}
+\item FMT$^*$ blends RRT's tree efficiency with PRM's cost optimality goals.
+\item Samples are connected via dynamic-programming style cost-of-arrival updates.
+\item Lazy collision handling skips invalid edges without reprocessing neighbors.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch06_figs/fmt.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% FMT* description plus figure narrative.
+% --- Original text end ---
+
+\begin{frame}{Dynamic Programming Connection Rule}
+\begin{itemize}
+\item Maintain arrival cost $c(u)$ for explored nodes and candidate cost for sample $v$.
+\end{itemize}
+\pause
+\begin{equation*}
+    c(v) = \min_{u: \lVert u - v \rVert < r_n} \text{Cost}(u,v) + c(u)
+\end{equation*}
+\pause
+\begin{itemize}
+\item Accept the best parent, then run a collision test; reject $v$ if the edge fails.
+\item Lazy evaluation keeps collision checks proportional to promising edges only.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Equation (\ref{eq:bellmancost}) and accompanying explanation of lazy DP in FMT*.
+% --- Original text end ---
+
+\begin{frame}{Kinodynamic Planning Basics}
+\begin{itemize}
+\item Some robots cannot traverse straight lines in $C$; dynamics impose $\dot{\x} = f(\x,\bu)$.
+\item Planning must occur in state space $X$ with admissible controls $\bu \in U$.
+\end{itemize}
+\pause
+\begin{equation*}
+    \dot{\x} = f(\x, \bu)
+\end{equation*}
+\pause
+\begin{itemize}
+\item State-to-configuration mapping ensures collision checking still applies.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Kinodynamic planning section introducing dynamics model.
+% --- Original text end ---
+
+\begin{frame}{Forward vs Steering Extensions}
+\begin{itemize}
+\item Forward propagation: sample control $u$ and duration $t$, integrate dynamics, and test the new edge.
+\item Steering-based: call a dedicated solver to connect $x$ and $x'$ with a feasible trajectory.
+\item Differentially flat systems often admit efficient steering functions.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.45\linewidth]{../tex/figs/ch06_figs/driftless.png}\hspace{1em}
+    \includegraphics[width=0.45\linewidth]{../tex/figs/ch06_figs/drift.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Description of DFMT* results and kinodynamic figures.
+% --- Original text end ---
+
+\begin{frame}{Deterministic Sampling Motivation}
+\begin{itemize}
+\item Randomness complicates certification and reuse in safety-critical deployments.
+\item Low-dispersion deterministic sequences can replace i.i.d. samples.
+\item Theoretical guarantees mirror probabilistic planners while shrinking required radii $r_n$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Section on deterministic sampling-based motion planning motivations.
+% --- Original text end ---
+
+\begin{frame}{$l_2$-Dispersion Metric}
+\begin{itemize}
+\item Measures the largest empty ball that fits between samples in $S \subset X$.
+\end{itemize}
+\pause
+\begin{equation*}
+    D(S) := \sup_{x \in X} \min_{s \in S} \lVert s - x \rVert_2
+\end{equation*}
+\pause
+\begin{itemize}
+\item Sequences with $D(S) \leq \gamma n^{-1/d}$ ensure returned paths converge to optimal length.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definition of l2-dispersion and convergence statement for deterministic sampling.
+% --- Original text end ---
+
+\begin{frame}{Exercises}
+\begin{itemize}
+\item Problem 2: implement geometric and Dubins RRT planners.
+\item Problem 3: combine A* planning with tracking for a unicycle robot.
+\item Extra credit: build a bi-directional RRT-Connect variant.
+\item Repository: \url{https://github.com/PrinciplesofRobotAutonomy/AA274A_HW2}
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Exercise listings for Chapter 06.
+% --- Original text end ---
+
+\end{document}

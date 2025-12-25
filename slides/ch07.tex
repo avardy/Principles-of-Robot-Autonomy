@@ -1,0 +1,343 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 07 - Robot Sensors}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Perception in Autonomy}
+\begin{itemize}
+\item Autonomy couples perception, planning, and control; sensors power the ``see'' loop.
+\item Robots blend diverse exteroceptive and proprioceptive inputs to stay aware of both world and self.
+\item Upcoming chapters dive into sensing hardware plus the pipelines that interpret measurements.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Intro paragraphs on see-think-act and sensor role across perception chapters.
+% --- Original text end ---
+
+\begin{frame}{Sensor Taxonomy}
+\begin{itemize}
+\item Proprioceptive sensors observe internal robot states (motors, joints, voltages).
+\item Exteroceptive sensors probe the environment (ranges, light intensity, sound levels).
+\item Interpretation burden is typically higher for exteroceptive data because semantics must be inferred.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definitions of proprioceptive and exteroceptive sensing.
+% --- Original text end ---
+
+\begin{frame}{Active vs Passive Behavior}
+\begin{itemize}
+\item Passive sensors rely on ambient energy (thermometers, cameras) and inherit environmental variability.
+\item Active sensors emit probe energy (ultrasonic, lidar) and must model round-trip propagation.
+\item Classification matters because illumination control, interference, and safety constraints differ.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definitions of passive and active sensors plus environmental dependencies.
+% --- Original text end ---
+
+\begin{frame}{Design-Spec Metrics}
+\begin{itemize}
+\item Dynamic range compares upper/lower input limits, often via $\text{DR}=10\log_{10}(r)$ in dB.
+\item Resolution sets the minimum distinguishable increment; digital sensors can decouple it from dynamic range.
+\item Linearity states whether output scales proportionally with input across the operating range.
+\item Bandwidth (Hz) caps how fast fresh measurements arrive, constraining robot speed and feedback rates.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Design specification metrics list (dynamic range, resolution, linearity, bandwidth).
+% --- Original text end ---
+
+\begin{frame}{In Situ Performance}
+\begin{itemize}
+\item Sensitivity trades signal amplification against noise amplification; cross-sensitivity captures off-axis effects.
+\item Error $e = m - v$ compares measured value $m$ to truth $v$; accuracy $a = 1 - |m-v|/v$ summarizes agreement.
+\item Precision tracks repeatability; a sensor can be precise yet inaccurate if bias dominates.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% In situ metrics (sensitivity, cross-sensitivity, error, accuracy, precision).
+% --- Original text end ---
+
+\begin{frame}{Systematic vs Random Errors}
+\begin{itemize}
+\item Systematic errors stem from deterministic, modelable causes (calibration drift, temperature bias).
+\item Random errors arise from stochastic influences (specular sonar reflections, camera black-level noise).
+\item Practical robots face blended regimes where environment-dependent effects blur these categories.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Distinction between systematic and random sensor errors.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Error Analysis Mindset}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Concept Recap}
+\begin{itemize}
+\item Catalog systematic sources first, then model random terms (often Gaussian) only where justified.
+\item Propagate both contributions through downstream estimators to predict accuracy and precision.
+\item Revisit assumptions as environments change; ``random'' sonar failures may become systematic at fixed poses.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Discussion on error analysis challenges and environment-dependent behavior.
+% --- Original text end ---
+
+\begin{frame}{Modeling Uncertainty}
+\begin{itemize}
+\item Probability distributions approximate unresolved random errors; unimodal Gaussian assumptions ease math.
+\item Real sensors (e.g., sonar, stereo) often exhibit multi-modal, biased noise when failure modes activate.
+\item Always align the assumed distribution with observed operating regimes to avoid brittle estimators.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Section on modeling uncertainty and pitfalls of unimodal assumptions.
+% --- Original text end ---
+
+\begin{frame}{Encoder Essentials}
+\begin{itemize}
+\item Encoders convert mechanical rotation into digital pulses for wheel or joint sensing.
+\item Optical quadrature designs illuminate slotted discs and read phase-shifted waveforms.
+\item Bandwidth comfortably exceeds mobile-robot shaft speeds, enabling precise proprioception.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.65\linewidth]{../tex/figs/ch07_figs/wheel_encoder.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Encoder description and Figure \ref{fig:encoder}.
+% --- Original text end ---
+
+\begin{frame}{Encoder Resolution Notes}
+\begin{itemize}
+\item Resolution (cycles per revolution) dictates minimum angular increment; $2000$ CPR $\rightarrow 0.18^\circ$ steps.
+\item Quadrature sensing multiplies counts by four by tracking both channel edges.
+\item Controlled mounting and predictable environments keep encoder systematic errors negligible.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Discussion of CPR, quadrature, and practical accuracy assumptions.
+% --- Original text end ---
+
+\begin{frame}{Heading Sensors Overview}
+\begin{itemize}
+\item Compasses read Earth’s magnetic field (Hall or flux-gate) but suffer from disturbances and indoor biases.
+\item Gyroscopes preserve orientation in an inertial frame and complement compasses for dead reckoning.
+\item Blending these modalities via filtering mitigates individual weaknesses.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Heading sensor section comparing compasses and gyros.
+% --- Original text end ---
+
+\begin{frame}{Mechanical Gyroscopes}
+\begin{itemize}
+\item Fast-spinning rotors on gimbals resist reorientation; friction-induced torques limit long-term accuracy.
+\item Reactive torque follows $\tau = I \omega \Omega$, tying drift to inertia and spin rates.
+\item High-grade units can drift $0.1^\circ$ over 6 hours but remain costly relative to MEMS.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{../tex/figs/ch07_figs/gyro.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Mechanical gyro description, equation, and Figure \ref{fig:gyro}.
+% --- Original text end ---
+
+\begin{frame}{Optical Gyros and Compasses}
+\begin{itemize}
+\item Ring-laser gyros send counter-propagating beams; frequency split satisfies $\delta f \propto \text{angular velocity}$.
+\item Resolutions below $10^{-4}$ deg/hr and $>100$ kHz bandwidth support high-end navigation.
+\item Digital compasses remain attractive for cost-sensitive outdoor robots despite vibration sensitivity.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Optical gyro paragraph plus compass trade-offs.
+% --- Original text end ---
+
+\begin{frame}{Accelerometer Modeling}
+\begin{itemize}
+\item Spring-mass-damper analogy obeys $F_{\text{applied}} = m \ddot{x} + c \dot{x} + kx$.
+\item Steady deflection yields $a_{\text{applied}} = kx/m$ once transients decay.
+\item MEMS devices sense proof-mass displacement via capacitive or piezoelectric transducers.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Accelerometer equations and MEMS description.
+% --- Original text end ---
+
+\begin{frame}{IMU Processing Pipeline}
+\begin{itemize}
+\item Combine tri-axial gyros and accelerometers to recover orientation, velocity, and position.
+\item Rotate measured accelerations into the navigation frame, subtract gravity, then integrate.
+\item Initialization at rest provides zero-velocity priors before double integration.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.65\linewidth]{../tex/figs/ch07_figs/imu.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% IMU block diagram discussion and Figure \ref{fig:IMU}.
+% --- Original text end ---
+
+\begin{frame}{IMU Drift Considerations}
+\begin{itemize}
+\item Gyro drift corrupts estimated attitude, which then contaminates gravity removal.
+\item Acceleration biases integrate into velocity drift and ultimately large position errors.
+\item Practical systems fuse IMUs with external references (GNSS, vision) to reset accumulated error.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Discussion of drift propagation and need for aiding sensors.
+% --- Original text end ---
+
+\begin{frame}{Beacons and GNSS}
+\begin{itemize}
+\item Known-position beacons (GNSS, motion-capture) provide absolute pose via relative measurements.
+\item Standard GNSS needs four satellites to solve $(x,y,z)$ plus receiver clock bias.
+\item Differential methods refine accuracy when reference infrastructure is available.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Beacon subsection describing GNSS positioning and enhancements.
+% --- Original text end ---
+
+\begin{frame}{Active Ranging Landscape}
+\begin{itemize}
+\item Time-of-flight sensors measure signal transit time (ultrasonic, lidar, ToF cameras).
+\item Geometric systems infer range via optical triangulation or structured light patterns.
+\item Direct distances feed both mapping and localization pipelines.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.58\linewidth]{../tex/figs/ch07_figs/Velodyne_64e.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Active ranging overview and Figure \ref{fig:active_range}.
+% --- Original text end ---
+
+\begin{frame}{Time-of-Flight Details}
+\begin{itemize}
+\item Distance obeys $d = c t$ with $c$ set by propagation medium (sound vs electromagnetic).
+\item Laser rangefinders demand sub-nanosecond timing, while ultrasonics relax electronics but limit update rate.
+\item Key uncertainty sources: arrival-time detection, electronics jitter, beam dispersion, target reflectivity, medium variation, and relative motion.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Time-of-flight derivation and list of quality factors.
+% --- Original text end ---
+
+\begin{frame}{Geometric Active Ranging}
+\begin{itemize}
+\item Optical triangulation projects a collimated beam and senses reflection location on a linear detector.
+\item Structured-light systems emit known patterns (points, lines, textures) and triangulate per-pixel depth.
+\item Accuracy hinges on calibration of projector/receiver baselines and robust feature decoding.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Geometric active ranging explanation.
+% --- Original text end ---
+
+\begin{frame}{Other Sensing Modalities}
+\begin{itemize}
+\item Radar exploits Doppler shifts for relative velocity; tactile arrays support physical interaction.
+\item Vision sensors capture rich appearance cues but need heavy computation for semantics.
+\item Sensor portfolios should reflect task demands, cost, and environmental challenges.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Brief mention of radar, tactile, and vision sensors.
+% --- Original text end ---
+
+\begin{frame}{Why Vision?}
+\begin{itemize}
+\item Cameras deliver massive information throughput for dynamic-scene understanding.
+\item Advances in computer vision and image processing unlock tasks from feature tracking to recognition.
+\item Remaining challenge: distill raw pixels into geometric and semantic primitives for planning.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Motivation for computer vision and mention of applications.
+% --- Original text end ---
+
+\begin{frame}{Digital Camera Hardware}
+\begin{itemize}
+\item CCD sensors use light-sensitive capacitors; CMOS integrates per-pixel amplifiers for low power.
+\item Exposure/shutter speed governs integration time before readout.
+\item Sensor choice balances image quality, cost, and power across robotic platforms.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Digital camera description (CCD vs CMOS, exposure).
+% --- Original text end ---
+
+\begin{frame}{Image Formation Basics}
+\begin{itemize}
+\item Objects scatter multi-wavelength light; raw rays would blur without an aperture barrier.
+\item Pinhole setups admit a sparse subset of rays, yielding sharp but dim images.
+\item Surface properties (reflection, absorption) dictate perceived color and brightness.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.78\linewidth]{../tex/figs/ch07_figs/pinhole.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Image formation discussion and Figure \ref{fig:LightRays}.
+% --- Original text end ---
+
+\begin{frame}{Pinhole Camera Geometry}
+\begin{itemize}
+\item Camera frame origin $O$ sits one focal length $f$ in front of the image plane.
+\item Rays through $O$ intersect the plane at point $p$, producing inverted imagery.
+\item Coordinate relation: $x = f X/Z$, $y = f Y/Z$ for scene point $P=(X,Y,Z)$.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch07_figs/pinholecamera.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Pinhole camera model explanation and Figure \ref{fig:PinholeMath}.
+% --- Original text end ---
+
+\begin{frame}{Thin Lens Insights}
+\begin{itemize}
+\item Lenses replace tiny apertures, refracting rays to focus more light while retaining sharpness.
+\item Similar-triangle geometry yields the thin-lens equation $\tfrac{1}{z} + \tfrac{1}{Z} = \tfrac{1}{f}$.
+\item Depth-of-field captures tolerable focus ranges; focusing at infinity recovers the pinhole limit.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.68\linewidth]{../tex/figs/ch07_figs/thinlens.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Thin lens model discussion and Figure \ref{fig:Lens}.
+% --- Original text end ---
+
+\begin{frame}{Next Steps}
+\begin{itemize}
+\item Audit your robot's sensor stack for coverage across proprioception, exteroception, and reference beacons.
+\item Capture calibration datasets to characterize both systematic biases and random noise regimes.
+\item Preview Chapter 08 to deepen camera modeling and calibration techniques.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Closing remarks transitioning toward camera models in later sections.
+% --- Original text end ---
+
+\end{document}

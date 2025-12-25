@@ -1,0 +1,184 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 19 - Finite State Machines}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{From Continuous to Discrete Logic}
+\begin{itemize}
+\item High-level tasks (e.g., pickup and delivery) need discrete progress tracking in addition to continuous pose.
+\item FSMs let us capture plan stages, sensor health, or safety contexts as finite symbols.
+\item They complement motion planners and estimators by supervising task flow.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Intro paragraphs motivating discrete abstractions on top of continuous control and perception stacks.
+% --- Original text end ---
+
+\begin{frame}{What FSMs Offer}
+\begin{itemize}
+\item Specify desired programs or behaviors (e.g., vending machines, ATMs).
+\item Model existing controllers interacting with their environment.
+\item Predict future behavior from input histories.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% FSM definition section listing specification, modeling, and prediction uses.
+% --- Original text end ---
+
+\begin{frame}{FSM Ingredients}
+\begin{itemize}
+\item Finite state set $S$, input alphabet $I$, and output alphabet $O$.
+\item Next-state function $n(i_t, s_t) \to s_{t+1}$ and output function $o(i_t, s_t) \to o_t$.
+\item Initial state $s_0$ anchors execution; history impacts behavior through $s_t$.
+\end{itemize}
+\pause
+\begin{equation*}
+\text{FSM} = (S, I, O, n, o, s_0)
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Mathematical description of FSM elements and notation.
+% --- Original text end ---
+
+\begin{frame}{Graphical View}
+\begin{itemize}
+\item Nodes depict states; directed edges encode transitions for input/output pairs.
+\item Edge labels typically include triggering input and emitted output.
+\item Helps sanity-check reachability and transition coverage.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.55\linewidth]{../tex/figs/ch19_figs/fsm.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Discussion of graph representations and Figure \ref{fig:fsm}.
+% --- Original text end ---
+
+\begin{frame}{Real-World Complexity}
+\begin{itemize}
+\item Even moderate state counts can explode into dense transition graphs.
+\item PX4 flight stack FSM highlights continual evolution of autonomy logic.
+\item Designers balance completeness with maintainability.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.72\linewidth]{../tex/figs/ch19_figs/px4_state_machine.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Paragraph describing PX4 FSM complexity and Figure \ref{fig:px4fsm}.
+% --- Original text end ---
+
+\begin{frame}{Parking Gate State Space}
+\begin{itemize}
+\item Abstract continuous gate motion into four discrete modes.
+\item Sensor-driven inputs report car presence and gate pose.
+\item Outputs command raise, lower, or hold actions.
+\end{itemize}
+\pause
+\begin{equation*}
+S = \{\text{down}, \text{raising}, \text{up}, \text{lowering}\}
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Example \ref{ex:parkinggate} definition of S, I, O sets.
+% --- Original text end ---
+
+\begin{frame}{Parking Gate Behavior}
+\begin{itemize}
+\item Next-state logic ties sensor facts to desired actuator commands.
+\item Example: $n(\text{car waiting},\text{down}) = \text{raising}$ with output ``raise''.
+\item Graph view clarifies the closed-loop policy.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.9\linewidth]{../tex/figs/ch19_figs/parkinggate_fsm.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Continued parking gate discussion plus Figure \ref{fig:parkinggate}.
+% --- Original text end ---
+
+\begin{frame}{Managing FSM Complexity}
+\begin{itemize}
+\item Redundant states inflate transitions; seek equivalent-state reductions.
+\item Hierarchical FSMs cluster related states into super-states with generalized transitions.
+\item Compositions (cascade, parallel, feedback) reuse patterns without rewriting logic.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% FSM architecture strategies: reducing states, hierarchical FSMs, compositions overview.
+% --- Original text end ---
+
+\begin{frame}{State Reduction Algorithm}
+\begin{itemize}
+\item Partition states by identical outputs, then iteratively refine via next-state destinations.
+\item Continue until no partition can be split; each block becomes a reduced state.
+\item Guarantees equivalent input/output behavior with fewer nodes.
+\end{itemize}
+\pause
+\begin{equation*}
+\{\text{Reset},0,1,00,10\} \Rightarrow \{\text{Reset}\}, \{0,1\}, \{00,10\}
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Algorithm description and Example \ref{ex:sequence} partition steps.
+% --- Original text end ---
+
+\begin{frame}{Sequence Detector Example}
+\begin{itemize}
+\item Original FSM detected 010 or 110 with seven partial-sequence states.
+\item Applying reduction yields four aggregate states while preserving True/False outputs.
+\item Simplified transition table retains detection accuracy with fewer edges.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Tables \ref{tab:sequence} and \ref{tab:sequence2} showing reduction results.
+% --- Original text end ---
+
+\begin{frame}{Implementation Pattern}
+\begin{itemize}
+\item Treat the FSM as a class: store current state and expose an update loop.
+\item Use sensor callbacks to populate inputs, then route through if/else transition logic.
+\item Publish commands each cycle; ROS example uses topics \texttt{/car\_sensor}, \texttt{/gate\_sensor}, \texttt{/gate\_cmd}.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Python example implementing parking gate FSM with rospy subscribers and publisher.
+% --- Original text end ---
+
+\begin{frame}{Visualization Tools}
+\begin{itemize}
+\item SMACH provides a ROS-friendly GUI for building and introspecting FSMs.
+\item Useful for debugging transitions and documenting autonomy stacks.
+\item See the ROS Wiki (http://wiki.ros.org/smach) for tutorials.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Mention of SMACH as an FSM visualization tool analogous to RViz.
+% --- Original text end ---
+
+\begin{frame}{Reminder: FSM Toolbox}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Discrete abstractions track task progress and interface with continuous controllers.
+\item Graphical FSMs aid reasoning, while reduction, hierarchy, and composition tame complexity.
+\item Implementations lean on clean state-update loops and tooling such as SMACH for visibility.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Chapter themes: motivation, architectural strategies, and implementation aids.
+% --- Original text end ---
+
+\end{document}

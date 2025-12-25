@@ -1,0 +1,287 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 04 - Optimal Control and Trajectory Optimization}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Revisit Optimal Control?}
+\begin{itemize}
+\item Chapter 4 returns to optimal control to connect planning, control, and numerical solvers.
+\item The goal is to contrast indirect and direct methods and expose how discretization choices matter.
+\item We will also study a worked double-integrator example and point to practice problems.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Previously, the idea of using \textit{optimal control} ... This chapter, the optimal control problem is revisited in more detail, including a brief discussion on the use of both \textit{indirect} and \textit{direct} methods.
+% --- Original text end ---
+
+\begin{frame}{Continuous-Time Optimal Control Problem}
+\begin{itemize}
+\item An OCP minimizes terminal and running costs while respecting nonlinear dynamics and initial data.
+\item State $\x(t) \in \mathbb{R}^n$ and control $\bm{u}(t) \in \mathbb{R}^m$ define the trajectory to be optimized.
+\item Solving the problem yields an open-loop policy $\bm{u}^*(t)$ parameterized by time and the initial condition.
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+\min_{\bm{u},\x}\; & h(\x(t_f),t_f) + \int_{t_0}^{t_f} g(\x(t),\bm{u}(t),t)\,dt \\
+\text{s.t.}\; & \dot{\x}(t) = a(\x(t),\bm{u}(t),t), \quad \x(t_0) = \x_0
+\end{aligned}
+\]
+\end{frame}
+% --- Original text start ---
+% Consider an optimal control problem (OCP) ... equations (1) ... \bm{u}^*(t) = f(\x(t_0), t).
+% --- Original text end ---
+
+\begin{frame}{Why The Problem Is Hard}
+\begin{itemize}
+\item OCPs are infinite-dimensional because they optimize over continuous functions of time.
+\item Numerical solutions require discretization, but the stage where discretization enters defines the method family.
+\item Understanding the structure helps decide when a controller can remain open-loop versus needs feedback augmentation.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Unfortunately, this optimization problem is particularly challenging to solve since it is \textit{infinite-dimensional} ... Methods for solving (1) can be categorized as either \textit{indirect} or \textit{direct}.
+% --- Original text end ---
+
+\begin{frame}{Indirect vs Direct Perspectives}
+\begin{itemize}
+\item Indirect: derive necessary optimality conditions ("optimize first"), then discretize those conditions for computation.
+\item Direct: discretize the original problem immediately ("discretize first"), producing a nonlinear program (NLP).
+\item Both paths inevitably use numerical solvers, but their modeling burdens differ.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Indirect methods follow a "first optimize, then discretize" approach ... Direct methods follow a "first discretize, then optimize" approach.
+% --- Original text end ---
+
+\begin{frame}{Refresher: Equality-Constrained Optimization}
+\begin{itemize}
+\item Before attacking infinite-dimensional problems, recall finite-dimensional Lagrange multiplier conditions.
+\item The constraints enter through multipliers $\bm{\lambda}$ that augment the cost into a Lagrangian $L(\x,\bm{\lambda})$.
+\item Stationarity in both $\x$ and $\bm{\lambda}$ gives the necessary optimality conditions (NOCs).
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+L(\x,\bm{\lambda}) &= f(\x) + \sum_{i=1}^m \lambda_i h_i(\x), \\
+\nabla_{\x} L(\x^*,\bm{\lambda}^*) &= 0, \quad \nabla_{\bm{\lambda}} L(\x^*,\bm{\lambda}^*) = 0
+\end{aligned}
+\]
+\end{frame}
+% --- Original text start ---
+% Consider the equality-constrained finite-dimensional optimization problem ... define the Lagrangian ... NOCs are given as ... equation (4).
+% --- Original text end ---
+
+\begin{frame}{Hamiltonian and Costates}
+\begin{itemize}
+\item Extending the Lagrangian idea leads to the Hamiltonian for the OCP.
+\item Costates $\bm{p}(t)$ play the role of multipliers enforcing the dynamics across time.
+\item The Hamiltonian couples running cost $g$ and dynamics $a$ to encode first-order conditions compactly.
+\end{itemize}
+\pause
+\[
+H(\x, \bm{u}, \bm{p}, t) = g(\x, \bm{u}, t) + \bm{p}^{\top} a(\x, \bm{u}, t)
+\]
+\end{frame}
+% --- Original text start ---
+% Analogously ... define the Hamiltonian $H(\x(t), \bu(t), \p(t), t) := g(\x(t), \bu(t), t) + \p^\top(t) a(\x(t), \bu(t), t)$.
+% --- Original text end ---
+
+\begin{frame}{Pontryagin Necessary Conditions}
+\begin{itemize}
+\item Stationarity of the Hamiltonian produces coupled state, costate, and input equations.
+\item Together with boundary conditions, these differential-algebraic equations characterize optimal trajectories.
+\item Solving them exactly is rarely possible, motivating numerical boundary-value solvers.
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+\dot{\x}^*(t) &= \frac{\partial H}{\partial \bm{p}}(\cdot), &
+\dot{\bm{p}}^*(t) &= -\frac{\partial H}{\partial \x}(\cdot), &
+0 &= \frac{\partial H}{\partial \bm{u}}(\cdot)
+\end{aligned}
+\]
+\end{frame}
+% --- Original text start ---
+% The NOCs are then given by ... equation (6) ... consisting of $2n$ differential equations and $m$ algebraic equations.
+% --- Original text end ---
+
+\begin{frame}{Boundary Condition Menu}
+\begin{itemize}
+\item Initial state $\x(t_0)=\x_0$ always supplies $n$ boundary conditions.
+\item Depending on whether final time/state are fixed or free, additional conditions arise from the terminal cost gradient and Hamiltonian.
+\item Free final time problems add one more condition, leading to $2n+1$ constraints overall.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Identifying unique solutions ... boundary conditions (7) ... summaries for the four scenarios (fixed/free final time/state).
+% --- Original text end ---
+
+\begin{frame}{Two-Point Boundary Value Problems}
+\begin{itemize}
+\item The coupled state-costate equations with split boundary data define a two-point boundary value problem (TPBVP).
+\item Solvers such as \texttt{bvp4c} (MATLAB) or \texttt{scikits.bvp\_solver} (Python) target the standard TPBVP form.
+\item When the OCP does not match the standard form, transformations can recover it.
+\end{itemize}
+\pause
+\[
+\dot{\mathbf{z}} = g(\mathbf{z}, t), \quad l(\mathbf{z}(t_0), \mathbf{z}(t_f)) = 0
+\]
+\end{frame}
+% --- Original text start ---
+% Most solvers ... standard form (8) ... some problems may not directly fit ... convert using methods from Ascher & Russell.
+% --- Original text end ---
+
+\begin{frame}{Free Final Time Trick}
+\begin{itemize}
+\item Introduce the normalized time $\tau = t / t_f$ so the horizon becomes $[0,1]$ even when $t_f$ is unknown.
+\item Replace every $\frac{d(\cdot)}{dt}$ with $t_f \frac{d(\cdot)}{d\tau}$ and promote $t_f$ to a state with $\dot{r}=0$.
+\item Substitute $r$ for $t_f$ in all equations and boundary conditions to use standard TPBVP solvers.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% In optimal control settings ... define new variable $\tau = t/t_f$ ... steps (1)-(3) ... tricking the solver to think final time is 1.
+% --- Original text end ---
+
+\begin{frame}{Example Setup: Free Final-Time Double Integrator}
+\begin{itemize}
+\item Dynamics: $\ddot{x} = u$ with boundary conditions $x(0)=10$, $\dot{x}(0)=0$, $x(t_f)=0$, $\dot{x}(t_f)=0$.
+\item Cost combines arrival time and control effort via weights $\alpha$ and $\beta$.
+\item Converting to first-order form yields $\dot{x}_1 = x_2$, $\dot{x}_2 = u$ with $\x = [x_1\;x_2]^\top$.
+\end{itemize}
+\pause
+\[
+J = \tfrac{1}{2}\alpha t_f^2 + \int_{0}^{t_f} \tfrac{1}{2}\beta u^2(t)\,dt
+\]
+\end{frame}
+% --- Original text start ---
+% Consider a double integrator system ... boundary conditions ... cost function ... rewrite as first-order system ... boundary conditions for $x_1$, $x_2$.
+% --- Original text end ---
+
+\begin{frame}{Example NOCs and Boundary Conditions}
+\begin{itemize}
+\item Hamiltonian $H = \tfrac{1}{2}\beta u^2 + p_1 x_2 + p_2 u$ yields linear dynamics for states and costates.
+\item Free final time with fixed final state imposes both terminal state constraints and a Hamiltonian condition.
+\item $u^*(t)$ emerges directly from the stationarity condition $\beta u^* + p_2^* = 0$.
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+\dot{x}_1^* &= x_2^*, & \dot{x}_2^* &= u^*, & \dot{p}_1^* &= 0, & \dot{p}_2^* &= -p_1^*, & u^* &= -\tfrac{1}{\beta}p_2^*
+\end{aligned}
+\]
+\end{frame}
+% --- Original text start ---
+% Now that the problem has been introduced ... Hamiltonian ... NOCs ... boundary conditions ... optimal control from stationarity.
+% --- Original text end ---
+
+\begin{frame}{Example Insights}
+\begin{itemize}
+\item Integrating the costate dynamics gives affine functions parameterized by constants $C_1, C_2$.
+\item State trajectories become polynomials in time whose coefficients follow from boundary conditions.
+\item The optimal arrival time scales as $t_f = (1800 \beta / \alpha)^{1/5}$, revealing the trade-off between effort and time.
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+p_1^* &= C_1, & p_2^* &= -C_1 t + C_2, & u^*(t) &= \tfrac{C_1}{\beta}t - \tfrac{C_2}{\beta}
+\end{aligned}
+\]
+\end{frame}
+% --- Original text start ---
+% Analytical solution section ... expressions for $p_1^*$, $p_2^*$, $x_1^*$, $x_2^*$, constants, and $t_f = (1800 \beta/\alpha)^{1/5}$ ... comments on limiting cases.
+% --- Original text end ---
+
+\begin{frame}{Direct Methods Overview}
+\begin{itemize}
+\item Direct transcription converts the continuous OCP into a finite-dimensional NLP.
+\item Decision variables become sampled states and controls defined on a mesh $t_0,\dots,t_N$.
+\item Dynamics, costs, and constraints must each be approximated consistently at those nodes.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Unlike indirect methods, direct methods do not require ... Instead these methods directly discretize ... nonlinear programming problem.
+% --- Original text end ---
+
+\begin{frame}{Forward Euler Discretization}
+\begin{itemize}
+\item A simple transcription uses forward Euler to approximate the dynamics update between nodes.
+\item With known steps $h_i = t_{i+1}-t_i$, the discrete model propagates states from controls.
+\item This substitution replaces the continuous differential constraint in the NLP.
+\end{itemize}
+\pause
+\[
+\x_{i+1} = \x_i + h_i a(\x_i, \bm{u}_i, t_i)
+\]
+\end{frame}
+% --- Original text start ---
+% Applying a forward Euler time discretization ... equation (21) ... recursive expression for dynamics.
+% --- Original text end ---
+
+\begin{frame}{Finite-Dimensional NLP}
+\begin{itemize}
+\item The discrete decision set consists of $\{\x_i,\bm{u}_i\}_{i=0}^{N}$ while $\x_0$ stays fixed by the initial condition.
+\item The integral cost becomes a weighted sum (e.g., Newton--Cotes trapezoidal rule).
+\item Together, they define the nonlinear program solved by generic NLP solvers.
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+\min_{\x_i,\bm{u}_i}\; & h(\x_N,t_N) + \sum_{i=0}^{N-1} h_i g(\x_i,\bm{u}_i,t_i) \\
+\text{s.t.}\; & \x_{i+1} = \x_i + h_i a(\x_i,\bm{u}_i,t_i),\; i=0,\dots,N-1
+\end{aligned}
+\]
+\end{frame}
+% --- Original text start ---
+% Rewriting the original OCP ... approximation of the integral ... finite-dimensional NLP equation (22).
+% --- Original text end ---
+
+\begin{frame}{Consistency of Discretization}
+\begin{itemize}
+\item Forming the NLP Lagrangian and differentiating recovers discrete NOCs.
+\item These conditions mirror the continuous-time NOCs once the same forward Euler approximations are applied.
+\item Therefore refining the mesh ($h_i \to 0$) pushes the discrete solution toward the original OCP optimum.
+\end{itemize}
+\pause
+\[
+\nabla_{\x_i} L = h_i \frac{\partial g}{\partial \x} + h_i \Big(\frac{\partial a}{\partial \x}\Big)^{\top} \! \bm{\lambda}_i + (\bm{\lambda}_i - \bm{\lambda}_{i-1}) = 0
+\]
+\end{frame}
+% --- Original text start ---
+% The Lagrangian for (22) ... NOCs (23) ... compare with indirect method NOCs (24) and show convergence as $h_i \to 0$.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Lagrange Multipliers}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Concept Recap}
+\begin{itemize}
+\item Multipliers attach to each constraint to form $L(\x,\bm{\lambda})$, enabling unconstrained calculus tools.
+\item Stationary points of $L$ satisfy both primal feasibility and dual feasibility simultaneously.
+\item This idea extends directly to Hamiltonians and costates when constraints are differential equations.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Necessary optimality conditions for equality-constrained problems ... Lagrangian definition ... gradients must vanish.
+% --- Original text end ---
+
+\begin{frame}{Exercises}
+\begin{itemize}
+\item Practice translating theory into code via the online exercise on optimal control and trajectory optimization.
+\item You will derive NOCs for a unicycle and solve them numerically using a TPBVP solver.
+\item Repository: \url{https://github.com/PrinciplesofRobotAutonomy/AA274A_HW1}
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Complete Extra Problem ... URL ... compute a dynamically feasible and optimal trajectory for a unicycle robot.
+% --- Original text end ---
+
+\end{document}

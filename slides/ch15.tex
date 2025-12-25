@@ -1,0 +1,137 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 15 - Nonparametric Filters}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Nonparametric?}
+\begin{itemize}
+\item Gaussian (EKF/UKF) beliefs are efficient but enforce unimodal structure.
+\item Some tasks need multiple hypotheses or sharp discontinuities in belief.
+\item Nonparametric filters keep Bayes recursion but drop restrictive priors.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Motivation for nonparametric filters vs parametric Gaussian filters.
+% --- Original text end ---
+
+\begin{frame}{Families of Nonparametric Filters}
+\begin{itemize}
+\item Histogram filter quantizes continuous state into finitely many bins.
+\item Particle filter represents belief with a cloud of weighted samples.
+\item Both approximate $bel(\x_t)$ without assuming shape.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Chapter overview introducing histogram and particle filters.
+% --- Original text end ---
+
+\begin{frame}{Histogram Filter: State Binning}
+\begin{itemize}
+\item Decompose domain into bins $\x_{1,t}\cup\cdots\cup \x_{K,t}=\text{dom}(X_t)$.
+\item Assign probability masses $p_{k,t}$; within each bin density is constant.
+\item Mean representative state $\hat{\x}_{k,t}=|\x_{k,t}|^{-1}\int_{\x_{k,t}}x_t d\x_t$ drives updates.
+\end{itemize}
+\pause
+\begin{equation*}
+ p(\x_t)=\frac{p_{k,t}}{|\x_{k,t}|}, \quad \x_t\in \x_{k,t}
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Histogram filter discretization equations.
+% --- Original text end ---
+
+\begin{frame}{Histogram Prediction and Update}
+\begin{itemize}
+\item Transition: $p(\x_{k,t}\mid \bu_t,\x_{i,t-1})\approx \eta |\x_{k,t}| p(\hat{\x}_{k,t}\mid \bu_t,\hat{\x}_{i,t-1})$.
+\item Measurement: $p(\z_t\mid \x_{k,t})\approx p(\z_t\mid \hat{\x}_{k,t})$.
+\item Apply discrete Bayes filter to evolve $p_{k,t}$ over bins.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Transition and measurement approximation plus pointer to discrete Bayes filter.
+% --- Original text end ---
+
+\begin{frame}{Histogram Trade-offs}
+\begin{itemize}
+\item Resolution vs.
+ computation: fine bins capture detail but explode state count.
+\item Binning error grows when dynamics or sensors vary sharply within bins.
+\item Works best for low-dimensional states (e.g., 1D range-only robots).
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Discussion on expressiveness and computational complexity.
+% --- Original text end ---
+
+\begin{frame}{Particle Filter Intuition}
+\begin{itemize}
+\item Represent belief by particles $\mathcal{X}_t=\{\x_t^{[1]},\ldots,\x_t^{[M]}\}$.
+\item Dense particle regions indicate high posterior probability.
+\item Exact only as $M\to \infty$, but $\mathcal{O}(10^3)$ samples often suffice.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definition of particle set and approximate belief representation.
+% --- Original text end ---
+
+\begin{frame}{Prediction and Weighing}
+\begin{itemize}
+\item For each prior particle, sample $\bar{\x}_t^{[m]} \sim p(\x_t\mid \bu_t, \x_{t-1}^{[m]})$.
+\item Compute weight $w_t^{[m]}=p(\z_t\mid \bar{\x}_t^{[m]})$ from measurement likelihood.
+\item Weighted set $\bar{\mathcal{X}}_t$ approximates $\overline{bel}(\x_t)$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Particle propagation and importance weighting description.
+% --- Original text end ---
+
+\begin{frame}{Resampling and Survival}
+\begin{itemize}
+\item Draw $M$ particles from $\bar{\mathcal{X}}_t$ proportionally to $w_t^{[m]}$.
+\item High-likelihood regions keep more "offspring"; others fade away.
+\item Resampling prevents degeneracy and focuses compute where it matters.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch15_figs/particlefilter.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Algorithm \ref{alg:particle} description and Figure \ref{fig:Particle_filter}.
+% --- Original text end ---
+
+\begin{frame}{Exercises}
+\begin{itemize}
+\item HW4 extra credit: Monte Carlo Localization with line features.
+\item Implement motion sampling, measurement likelihoods, and resampling loop.
+\item Repository: \url{https://github.com/PrinciplesofRobotAutonomy/AA274A_HW4}.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Exercise description referencing AA274A_HW4 particle filter task.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Nonparametric Stack}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Histogram filters discretize space; particles sample it—both avoid strict shapes.
+\item Always apply Bayes prediction + correction even when beliefs are sample-based.
+\item Resampling or grid resolution choices set the accuracy vs.
+ runtime balance.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Summary of histogram and particle filters and practical tuning.
+% --- Original text end ---
+
+\end{document}

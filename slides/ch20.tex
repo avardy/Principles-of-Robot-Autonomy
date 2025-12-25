@@ -1,0 +1,218 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 20 - Decision Making}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Sequential Decisions?}
+\begin{itemize}
+\item Higher-level autonomy must reason over action sequences under uncertainty, not single commands.
+\item Examples include intersection negotiation or choosing task order (finish A before B?).
+\item Dynamic programming provides a structured way to plan ahead despite uncertainty.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Intro paragraphs motivating sequential decision making and mention of dynamic programming.
+% --- Original text end ---
+
+\begin{frame}{Deterministic Model Ingredients}
+\begin{itemize}
+\item Discrete-time model $\x_{k+1} = f_k(\x_k, \bu_k)$ for $k = 0,\dots,N-1$.
+\item State $\x$ can be physical pose or abstract FSM-style modes.
+\item Horizon $N$ limits how far ahead the plan must look.
+\end{itemize}
+\pause
+\begin{equation*}
+\x_{k+1}= f_k(\x_k, \bu_k)
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Deterministic decision making model equation and discussion of discrete-time setup.
+% --- Original text end ---
+
+\begin{frame}{Controls and Costs}
+\begin{itemize}
+\item Control feasibility encoded via admissible set $\mathcal{U}(\x_k)$.
+\item Additive stage and terminal costs capture objectives.
+\item Structure mirrors trajectory optimization but in discrete time.
+\end{itemize}
+\pause
+\begin{equation*}
+J = g_N(\x_N) + \sum_{k=0}^{N-1} g_k(\x_k, \bu_k)
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Discussion of admissible controls (Eq. 20.2) and additive cost (Eq. 20.3).
+% --- Original text end ---
+
+\begin{frame}{Deterministic Problem Statement}
+\begin{itemize}
+\item Optimize open-loop sequence $\{\bu_0,\dots,\bu_{N-1}\}$ from initial state $\x_0$.
+\item Minimize cumulative cost subject to dynamics and constraints.
+\item Brute force over all sequences quickly becomes intractable.
+\end{itemize}
+\pause
+\begin{equation*}
+J^*(\x_0) = \min_{\bu_k \in \mathcal{U}(\x_k)} J(\x_0, \bu_0, \dots, \bu_{N-1})
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Definition of deterministic decision making problem (Eq. 20.4).
+% --- Original text end ---
+
+\begin{frame}{Principle of Optimality}
+\begin{itemize}
+\item Any suffix of an optimal control sequence is itself optimal for the corresponding tail problem.
+\item Enables reuse of downstream solutions rather than re-solving full sequences.
+\item Proof by contradiction: replacing a subpath with a better one contradicts optimality.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{../tex/figs/ch20_figs/princopt1.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Principle of optimality narrative and Figure \ref{fig:princopt1}.
+% --- Original text end ---
+
+\begin{frame}{Tail Reuse in Practice}
+\begin{itemize}
+\item Known optimal tails let us compare only immediate successor states.
+\item Backward dynamic programming evaluates states in reverse order.
+\item Reduces search from exponential paths to a handful of candidates.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.68\linewidth]{../tex/figs/ch20_figs/princopt2.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Figure \ref{fig:princopt2} discussion showing reduced candidate paths.
+% --- Original text end ---
+
+\begin{frame}{Dynamic Programming (Deterministic)}
+\begin{itemize}
+\item Backward recursion stores optimal cost-to-go $J_k^*(\x_k)$.
+\item Bellman update solves a local minimization per state and stage.
+\item Forward sweep recovers the optimal control sequence from $J_k^*$.
+\end{itemize}
+\pause
+\begin{equation*}
+J_k^*(\x_k) = \min_{\bu_k \in \mathcal{U}(\x_k)} g_k(\x_k,\bu_k) + J_{k+1}^*(f_k(\x_k, \bu_k))
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Algorithm \ref{alg:dDP} description and forward pass explanation.
+% --- Original text end ---
+
+\begin{frame}{Example: Grid DP}
+\begin{itemize}
+\item State is current node (a--h); controls follow allowed arrows.
+\item Backward DP quickly recovers the optimal path $a \to d \to e \to f \to g \to h$ with cost 18.
+\item Same data yields optimal strategies for any start/horizon.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.8\linewidth]{../tex/figs/ch20_figs/dpexample.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Example \ref{ex:detDP} problem and figure showing optimal path.
+% --- Original text end ---
+
+\begin{frame}{Stochastic Extension}
+\begin{itemize}
+\item Inject disturbances $w_k$ via $\x_{k+1}=f_k(\x_k, \bu_k, w_k)$ with known $P_k(w_k \mid \x_k, \bu_k)$.
+\item Need closed-loop policies $\pi_k(\x_k)$ to react to random outcomes.
+\item Cost evaluates expectation of terminal and stage losses.
+\end{itemize}
+\pause
+\begin{equation*}
+J_\pi(\x_0) = E\big[g_N(\x_N) + \sum_{k=0}^{N-1} g_k(\x_k, \pi_k(\x_k), w_k)\big]
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Stochastic model equation (Eq. 20.12) and expected cost (Eq. 20.13).
+% --- Original text end ---
+
+\begin{frame}{Stochastic Optimality}
+\begin{itemize}
+\item Principle of optimality still holds when reasoning over reachable states and distributions.
+\item Tail policy sequence remains optimal for every reachable tail state.
+\item Enables the same backward reasoning with expectations in place of sums.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Theorem on stochastic principle of optimality.
+% --- Original text end ---
+
+\begin{frame}{Dynamic Programming (Stochastic)}
+\begin{itemize}
+\item Bellman update now minimizes expected cost with respect to $w_k$.
+\item Resulting value functions $J_k(\x_k)$ guide optimal feedback policy.
+\item Policies recovered via argmin over admissible controls after value iteration.
+\end{itemize}
+\pause
+\begin{equation*}
+J_k(\x_k) = \min_{\bu_k \in \mathcal{U}(\x_k)} E_{w_k}\big[g_k + J_{k+1}(f_k(\x_k, \bu_k, w_k))\big]
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Algorithm \ref{alg:sDP} description.
+% --- Original text end ---
+
+\begin{frame}{Inventory Control Example}
+\begin{itemize}
+\item State: stock level $x_k$; control: new orders $u_k$; disturbance: random demand $w_k$.
+\item DP computes value function over three-step horizon with constraints $x_k + u_k \leq 2$.
+\item Optimal policy: order one item only when stock is zero; otherwise hold.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Example \ref{ex:stoDP} summary and findings.
+% --- Original text end ---
+
+\begin{frame}{DP in Practice}
+\begin{itemize}
+\item Curse of dimensionality: Bellman updates explode with state dimension.
+\item Curse of modeling: real systems rarely yield accurate transition probabilities.
+\item Curse of time: data may change online, forcing repeated solves.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Challenges section describing the three curses.
+% --- Original text end ---
+
+\begin{frame}{Reinforcement Learning Motivation}
+\begin{itemize}
+\item Suboptimal DP variants approximate value functions or policies.
+\item Value-space methods approximate $J_k$; policy-space methods fit parameterized controllers.
+\item Goal: retain DP’s structure while coping with large, uncertain problems.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Reinforcement learning subsection describing approximate DP families.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Decision-Making Toolbox}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Sequential decisions hinge on additive models, admissible controls, and the principle of optimality.
+\item Dynamic programming solves deterministic and stochastic problems via backward Bellman recursions.
+\item Practical deployments wrestle with modeling, dimensionality, and motivate RL approximations.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Chapter summary: decision-making models, DP algorithms, challenges, and RL motivation.
+% --- Original text end ---
+
+\end{document}

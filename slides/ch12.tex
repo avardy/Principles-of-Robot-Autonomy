@@ -1,0 +1,174 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 12 - Modern Computer Vision}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Deep Learning Era}
+\begin{itemize}
+\item Modern perception stacks lean on CNNs trained with abundant data and compute.
+\item Architectural staples: convolutions, nonlinearities, pooling, then dense heads.
+\item Robotics uses CNNs for both semantic understanding and geometric cues.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Chapter lead-in on CNN motivation and component list.
+% --- Original text end ---
+
+\begin{frame}{Canonical CNN Blueprint}
+\begin{itemize}
+\item Early CNNs (e.g., LeNet-5) already stacked conv, pooling, and FC layers.
+\item Depth and parameter sharing regularize training versus plain MLPs.
+\item Modern variants scale channel counts but keep the same motif.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.85\linewidth]{../tex/figs/ch12_figs/lecun.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Figure of LeCun et al. network and regularization discussion.
+% --- Original text end ---
+
+\begin{frame}{Convolution Filters}
+\begin{itemize}
+\item Learned filters slide over RGB patches with stride and optional padding.
+\item Each filter implements $f(x)=w^\top x + b$ before ReLU or similar activation.
+\item Filter sizes, strides, and count are key hyperparameters.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.75\linewidth]{../tex/figs/ch12_figs/convolution.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Convolution layer explanation and Figure convfilter.
+% --- Original text end ---
+
+\begin{frame}{Activation Maps}
+\begin{itemize}
+\item Filtering plus nonlinearity produces feature maps highlighting learned cues.
+\item Multiple filters per layer stack activation maps along the channel axis.
+\item Later layers consume these maps to detect higher-level patterns.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{../tex/figs/ch12_figs/convolution2.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Activation map description and Figure convolution2.
+% --- Original text end ---
+
+\begin{frame}{Feature Hierarchies}
+\begin{itemize}
+\item Early filters resemble edge detectors; mid layers capture textures.
+\item Deep filters respond to object parts and semantic motifs.
+\item Hierarchy emerges automatically during training.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch12_figs/features.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Zeiler and Fergus visualization discussion.
+% --- Original text end ---
+
+\begin{frame}{Why Convolutions Work}
+\begin{itemize}
+\item Parameter sharing keeps models compact versus dense layers.
+\item Sparse interactions focus computation on local, meaningful evidence.
+\item Translation equivariance lets filters fire anywhere in the image.
+\item Flexible input sizing comes for free when using shared kernels.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Bullet list on benefits (sharing, sparsity, equivariance, varying size).
+% --- Original text end ---
+
+\begin{frame}{Pooling Layers}
+\begin{itemize}
+\item Max or mean pooling summarize activations over small windows.
+\item Downsampling increases invariance to small shifts and cuts compute.
+\item Pooling preserves channel count while shrinking spatial grids.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.55\linewidth]{../tex/figs/ch12_figs/maxpool.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Pooling explanation and Figure maxpool.
+% --- Original text end ---
+
+\begin{frame}{Fully Connected Heads}
+\begin{itemize}
+\item Flattened feature maps feed a small stack of dense layers.
+\item These heads perform the final classification or regression task.
+\item Only a fraction of layers are dense; most parameters live in conv blocks.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Fully connected section.
+% --- Original text end ---
+
+\begin{frame}{End-to-End Learning}
+\begin{itemize}
+\item CNNs jointly learn feature extraction and decision layers.
+\item Deep architectures surpassed hand-engineered pipelines post-2012.
+\item Classical features still help when structure is well understood.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Performance discussion on end-to-end vs classical.
+% --- Original text end ---
+
+\begin{frame}{Object Localization}
+\begin{itemize}
+\item Predict bounding boxes $(x,y,w,h)$ plus class labels per object.
+\item Split heads: one for classification, one for regression with $l_2$ loss.
+\item Combine via multi-task objective to share conv backbones.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{../tex/figs/ch12_figs/boundingbox.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Bounding box explanation and Figure boundingbox.
+% --- Original text end ---
+
+\begin{frame}{Multiple Objects}
+\begin{itemize}
+\item Variable counts of objects make fixed-size outputs tricky.
+\item Slide CNNs over candidate crops; include a "background" class.
+\item Region proposals or grid partitions reduce redundant evaluations.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Discussion on regions of interest and sliding CNN filters.
+% --- Original text end ---
+
+\begin{frame}{Reminder: CNN Toolbox}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Stack conv + pooling blocks to harvest spatially local cues efficiently.
+\item Dense heads plus multi-task losses cover class labels and box regression.
+\item Use proposals or grids to scale detection when many objects appear.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Summary tying together convolutional building blocks and detection usage.
+% --- Original text end ---
+
+\end{document}

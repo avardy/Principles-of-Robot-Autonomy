@@ -1,0 +1,210 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 11 - Information Extraction}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{From Features to Semantics}
+\begin{itemize}
+\item Chapter 10 handled local filters; now we extract higher-level structure and object labels.
+\item Geometric primitives (lines, planes) support mapping and localization across many sensors.
+\item Object recognition pipelines classify discrete entities for planning and decision making.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Chapter introduction on geometric feature extraction and object recognition motivation.
+% --- Original text end ---
+
+\begin{frame}{Geometric Feature Extraction}
+\begin{itemize}
+\item Represent environments via simple primitives fit to range or vision data.
+\item Two subproblems: segmentation (which points) and fitting (parameter estimation).
+\item Focus here on 2D line extraction; other primitives follow similar recipes.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Section introduction: segmentation vs fitting for lines.
+% --- Original text end ---
+
+\begin{frame}{Split-and-Merge Segmentation}
+\begin{itemize}
+\item Fit a line to a set; if any point exceeds threshold $d$, split at that point.
+\item Repeat until all subsets satisfy the distance bound, then merge colinear neighbors.
+\item Iterative-end-point-fit variant simply connects subset endpoints for speed.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.75\linewidth]{../tex/figs/ch11_figs/iterative_end_point_fit.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Algorithm \ref{alg:splitmerge} and Figure \ref{fig:splitmerge}.
+% --- Original text end ---
+
+\begin{frame}{RANSAC for Lines}
+\begin{itemize}
+\item Randomly sample minimal sets, fit candidate lines, score inliers within distance $d$.
+\item Keep the hypothesis with the most inliers; repeat to boost success probability.
+\item Robust to outliers, but run sequentially when multiple lines are needed.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.75\linewidth]{../tex/figs/ch11_figs/ransac.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Algorithm \ref{alg:ransac} description and Figure \ref{fig:ransac-working}.
+% --- Original text end ---
+
+\begin{frame}{RANSAC Iteration Budget}
+\begin{itemize}
+\item Let $w$ be probability of drawing an inlier; two-inlier sample occurs with $w^2$.
+\item Probability RANSAC never sees a clean sample in $k$ trials is $(1-w^2)^k$.
+\item Solve for $k$ to reach success probability $p$ instead of brute-force $\frac{N(N-1)}{2}$.
+\end{itemize}
+\pause
+\begin{equation*}
+\bar{k} = \frac{\log(1-p)}{\log(1-w^2)}
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Statistical analysis leading to Eq. \eqref{eq:magic-k}.
+% --- Original text end ---
+
+\begin{frame}{Hough Transform Intuition}
+\begin{itemize}
+\item Each point $(x_i,y_i)$ votes for all line parameters passing through it.
+\item In $(m,b)$ space, original points map to lines; intersections reveal candidate lines.
+\item Polar form $(\alpha,r)$ avoids infinite slopes and offers uniform grids.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch11_figs/hough.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Figures \ref{fig:hough1}-\ref{fig:hough4} on Hough transform mappings.
+% --- Original text end ---
+
+\begin{frame}{Polar Hough Space}
+\begin{itemize}
+\item Line representation: $x\cos \alpha + y\sin \alpha = r$.
+\item Single data point maps to sinusoid in $(\alpha,r)$; intersections mark consistent lines.
+\item Voting via discretized accumulator; pick local maxima as detected lines.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch11_figs/hough4.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Polar mapping explanation with Figures \ref{fig:hough3}, \ref{fig:hough4}.
+% --- Original text end ---
+
+\begin{frame}{Line Fitting via Least Squares}
+\begin{itemize}
+\item Once segments are known, estimate line parameters $(\alpha,r)$ minimizing perpendicular error.
+\item Work in polar coords: $d_i = \rho_i \cos(\theta_i - \alpha) - r$.
+\item Minimize $S(r,\alpha) = \sum d_i^2$ to get closed-form solutions.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.5\linewidth]{../tex/figs/ch11_figs/polarlinefit.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Equations \eqref{eq:polarline}, \eqref{eq:lineerror}, \eqref{eq:MSL} and Figure \ref{fig:polarline}.
+% --- Original text end ---
+
+\begin{frame}{Weighted Least Squares}
+\begin{itemize}
+\item Handle heterogeneous noise with weights $w_i = 1/\sigma_i^2$.
+\item Cost: $S_w = \sum w_i (\rho_i \cos(\theta_i - \alpha) - r)^2$.
+\item Closed-form expressions adjust $r$ and $\alpha$ to favor precise measurements.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Weighted formulation \eqref{eq:WMSL} and resulting expressions.
+% --- Original text end ---
+
+\begin{frame}{Object Recognition Tasks}
+\begin{itemize}
+\item Move from geometric primitives to semantic labels (people, cars, tools).
+\item Challenges: pose variation, intra-class diversity, occlusion, clutter.
+\item Common families: template matching, bag-of-visual-words, convolutional nets.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Object recognition overview and methods list.
+% --- Original text end ---
+
+\begin{frame}{Template Matching}
+\begin{itemize}
+\item Cross-correlate template $T$ across image $I$; high responses indicate matches.
+\item SAD/SSD windows from Chapter 10 provide alternative similarity measures.
+\item Image pyramids mitigate scale changes: detect coarsely, refine at higher resolution.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.55\linewidth]{../tex/figs/ch11_figs/image_pyramid.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Template matching, SAD, and pyramid discussion with Figure \ref{image-pyramid}.
+% --- Original text end ---
+
+\begin{frame}{Bag of Visual Words}
+\begin{itemize}
+\item Treat objects as unordered collections of part-level "visual words".
+\item Build histograms over detected words; classify via similarity to training distributions.
+\item Works across categories where layout varies but part presence matters.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Bag of visual words section describing histogram-based recognition.
+% --- Original text end ---
+
+\begin{frame}{Convolutional Neural Networks}
+\begin{itemize}
+\item CNNs learn hierarchical filters end-to-end for recognition and detection tasks.
+\item Convolutions + pooling handle spatial locality and translation variance.
+\item Modern robotics stacks rely on CNN backbones for perception modules.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% CNN overview and historical context.
+% --- Original text end ---
+
+\begin{frame}{Exercises}
+\begin{itemize}
+\item HW3 Problem 2: implement Split-and-Merge for Lidar line extraction.
+\item HW3 Problem 4: practice template matching with OpenCV.
+\item Extra Problem: study Gaussian pyramids for multiscale matching.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Exercises list referencing AA274A_HW3 repository problems.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Extraction Checklist}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Combine segmentation (Split-Merge, RANSAC, Hough) with least-squares fitting for clean maps.
+\item Tune thresholds $d$, iteration counts $k$, and accumulator grids to balance speed/robustness.
+\item Template/CNN pipelines need multiscale reasoning; reuse pyramids and descriptors from prior chapters.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Summary reminder synthesizing segmentation, fitting, and recognition lessons.
+% --- Original text end ---
+
+\end{document}

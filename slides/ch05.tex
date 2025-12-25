@@ -1,0 +1,268 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 05 - Search-Based Motion Planning}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{From Optimal Control to Search}
+\begin{itemize}
+\item Prior chapters planned in state space using dynamics-aware optimal control or flatness.
+\item Here we move to configuration-space planners that emphasize collision-free navigation (e.g., LaValle 2006).
+\item These planners supply high-level paths that later controllers can track.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Previous chapters addressed ... new set of algorithms ... configuration space rather than state space.
+% --- Original text end ---
+
+\begin{frame}{Motion Planning Problem Recap}
+\begin{itemize}
+\item Goal: find actions that move from start to goal while obeying constraints, maybe optimizing cost.
+\item Previously we parameterized trajectories by state $\x$ and control $\bu$ linked via dynamics.
+\item That viewpoint made sense for low-level control but complicates obstacle reasoning.
+\end{itemize}
+\pause
+\[
+\dot{\x} = f(\x, \bm{u})
+\]
+\end{frame}
+% --- Original text start ---
+% Recall the general definition ... trajectory parameterized by state ... differential equations.
+% --- Original text end ---
+
+\begin{frame}{Configurations vs States}
+\begin{itemize}
+\item Configuration $\bm{q}$ captures the robot's geometric degrees of freedom and derives from $\x$.
+\item Choosing $C$-space tailored to collision checking can ignore dynamics during planning.
+\item Geometric paths in $C$-space can later be time-parameterized and tracked by lower-level controllers.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Configuration $\q$ derivable from state ... useful for geometric path planning.
+% --- Original text end ---
+
+\begin{frame}{Motivating Example: L-Shaped Robot}
+\begin{itemize}
+\item The robot lives in a 2D workspace with obstacles and needs a collision-free path.
+\item $\bm{q} = [x, y, \theta]^\top$ suffices to capture translation and heading.
+\item Planning directly in $C$-space lets us ignore velocities until we execute the path.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.8\linewidth]{../tex/figs/ch05_figs/2d_ws_obstacles.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Example describing L-shaped robot in 2D workspace with obstacles and configuration path planning.
+% --- Original text end ---
+
+\begin{frame}{Manifold Structure Matters}
+\begin{itemize}
+\item Orientation lives on $\mathcal{S}^1$, so headings separated by $2\pi k$ are equivalent.
+\item Recognizing the manifold lets the planner choose clockwise or counter-clockwise rotations.
+\item Without this, certain goals would appear unreachable due to artificial discontinuities.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.8\linewidth]{../tex/figs/ch05_figs/S1_obstacle.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Discussion of $\mathcal{S}^1$ manifold and Figure \ref{fig:rotational-dof-fig}.
+% --- Original text end ---
+
+\begin{frame}{Planner Families}
+\begin{itemize}
+\item Grid-based planners discretize $C$-space into finitely many cells and search the resulting graph.
+\item Combinatorial planners keep the space continuous and construct roadmaps inside $C_{free}$.
+\item Both ultimately reduce to graph search but differ in how vertices are chosen.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Chapter introduces grid-based methods and combinatorial planners.
+% --- Original text end ---
+
+\begin{frame}{Grid-Based Discretization}
+\begin{itemize}
+\item Divide $C$-space into a grid, marking forbidden cells that intersect obstacles.
+\item Assume the robot can move between adjacent free cells, abstracting away dynamics.
+\item Resolution controls fidelity: too coarse and narrow passages disappear; too fine and graphs explode.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.65\linewidth]{../tex/figs/ch05_figs/2d_ws_grid.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Description of grid discretization and Figure \ref{fig:grid}.
+% --- Original text end ---
+
+\begin{frame}{Graphs from Grids}
+\begin{itemize}
+\item Each free cell becomes a vertex $v \in V$; adjacency induces edges $E$.
+\item Planning is now a discrete graph search from $q_I$ to $q_G$.
+\item Graph size grows exponentially with dimension, so grids suit low-DOF robots best.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Mapping grids to graphs and discussing pros/cons of discretization.
+% --- Original text end ---
+
+\begin{frame}{Label-Correcting Recipes}
+\begin{itemize}
+\item Maintain cost-of-arrival $C(q)$ for each vertex and track a frontier set $Q$ of candidates.
+\item Iteratively pop a vertex, relax each outgoing edge, and push improved neighbors.
+\item Terminate when $Q$ empties; recovered parents trace an optimal path if one exists.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Description of label correcting algorithms and finite termination.
+% --- Original text end ---
+
+\begin{frame}{Cost-of-Arrival Accounting}
+\begin{itemize}
+\item Initialize $C(q_I)=0$, $C(q)=\infty$ otherwise to encode lack of knowledge.
+\item Relaxing edge $(q,q')$ proposes a candidate arrival cost.
+\item Accept it only if it improves $q'$ and remains below the best-known goal cost.
+\end{itemize}
+\pause
+\[
+\tilde{C}(q') = C(q) + C(q,q')
+\]
+\end{frame}
+% --- Original text start ---
+% Definition of cost-of-arrival and candidate updates.
+% --- Original text end ---
+
+\begin{frame}{Search Orders}
+\begin{itemize}
+\item Depth-first: treat $Q$ like a stack (last-in/first-out) to dive along one branch at a time.
+\item Breadth-first: treat $Q$ like a queue to expand all nodes by uniform depth.
+\item Best-first: prioritize the smallest $C(q)$, i.e., Dijkstra's optimistic strategy.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.42\linewidth]{../tex/figs/ch05_figs/depth_first.PNG}\hspace{1em}
+    \includegraphics[width=0.42\linewidth]{../tex/figs/ch05_figs/breadth_first.PNG}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Paragraphs on depth-first, breadth-first, and best-first/Dijkstra.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Priority Queues}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Concept Recap}
+\begin{itemize}
+\item A priority queue stores frontier vertices with retrieval keyed by a scalar priority.
+\item Implementations (binary heaps, pairing heaps) make extract-min and decrease-key nearly logarithmic.
+\item Efficient queues are essential for best-first and A* searches on large grids.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Frontier set $Q$ often treated as a priority queue in label-correcting algorithms.
+% --- Original text end ---
+
+\begin{frame}{A* Intuition}
+\begin{itemize}
+\item Augment Dijkstra's greedy cost with a heuristic cost-to-go $h(q)$ toward $q_G$.
+\item Heuristic must underestimate the true cost-to-go to preserve optimality.
+\item Total priority blends what we have paid with what we expect to pay next.
+\end{itemize}
+\pause
+\[
+y(q) = C(q) + h(q)
+f(q) = C(q) + h(q)
+\]
+\end{frame}
+% --- Original text start ---
+% Definition of cost-to-go, heuristics, and A* modifications.
+% --- Original text end ---
+
+\begin{frame}{A* Workflow}
+\begin{itemize}
+\item Initialize $C(q_I)=0$, $f(q_I)=h(q_I)$, and push $q_I$ to $Q$.
+\item Repeatedly pop the vertex with minimal $f(q)$, expand neighbors, and update parents.
+\item Stop once $q_G$ is popped; if $h=0$, this collapses to Dijkstra.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Algorithm \ref{alg:astar} procedure and note about $h=0$ reducing to Dijkstra.
+% --- Original text end ---
+
+\begin{frame}{From Obstacles to Free Space}
+\begin{itemize}
+\item Combinatorial planners explicitly construct the free subset $C_{free} \subset C$.
+\item The robot's footprint is grown onto obstacles so the point robot can move in $C$-space.
+\item Once $C_{free}$ is known we can drop explicit geometry and work purely in configuration space.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.58\linewidth]{../tex/figs/ch05_figs/obs_padding.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Introduction of $C_{free}$ and Figure \ref{fig:collision-free-space-fig}.
+% --- Original text end ---
+
+\begin{frame}{Roadmaps in $C_{free}$}
+\begin{itemize}
+\item Build a roadmap graph whose vertices and edges lie entirely inside $C_{free}$.
+\item Flexibility: vertices can be placed anywhere, avoiding the resolution limits of grids.
+\item Once $q_I$ and $q_G$ connect to the roadmap, standard graph search yields a path.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.62\linewidth]{../tex/figs/ch05_figs/2d_ws_Cfree.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Description of roadmaps, set S, and Figure \ref{fig:combinatorial-planning}.
+% --- Original text end ---
+
+\begin{frame}{Cell Decomposition}
+\begin{itemize}
+\item Partition $C_{free}$ into easy-to-traverse cells (ideally convex) and connect adjacent ones.
+\item Vertical cell decomposition in 2D yields trapezoids/segments amenable to roadmap placement.
+\item Applicable to polygonal obstacles; higher-dimensional decompositions grow complex quickly.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch05_figs/2d_cell_decomp.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Example \ref{ex:celldecomp} detailing vertical cell decomposition and figure.
+% --- Original text end ---
+
+\begin{frame}{Other Roadmap Strategies}
+\begin{itemize}
+\item Maximum-clearance (Voronoi) roadmaps bias paths toward the medial axis to stay far from obstacles.
+\item Minimum-distance roadmaps hug obstacle boundaries, which is rarely desirable without smoothing.
+\item Choice depends on safety margins, sensing noise, and follow-on controller capabilities.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Mention of maximum clearance vs minimum distance roadmaps.
+% --- Original text end ---
+
+\begin{frame}{Exercises}
+\begin{itemize}
+\item Implement the A* grid-based motion planning assignment.
+\item Practice configuring heuristics, grids, and parent tracing in simple 2D worlds.
+\item Repository: \url{https://github.com/PrinciplesofRobotAutonomy/AA274A_HW2}
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Exercise description referencing Problem 1: A* Motion Planning.
+% --- Original text end ---
+
+\end{document}

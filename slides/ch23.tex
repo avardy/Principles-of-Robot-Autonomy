@@ -1,0 +1,196 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 23 - System Architectures}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Architectures?}
+\begin{itemize}
+\item Robots combine diverse sensors and actuators that must stay reliable in unstructured environments.
+\item Without principled architecture, complexity explodes and undermines robust autonomy.
+\item This chapter surveys proven paradigms for structuring software and computation to keep systems manageable.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% A robotic system is fundamentally just a collection of sensors and actuators that can interact with the environment to accomplish a set of tasks. While this definition may seem simple, the systems required to implement this definition tend to be extremely complex due to the infinite variability and uncertainty of real-world environments and the diversity among sensors and actuators. Therefore, careful and practical design of robotic systems is crucial for managing complexity, and as a byproduct enabling robust and successful robotic operations. This chapter will introduce some of the fundamental concepts, paradigms, and tools in the design of robot system architectures to enable full robot autonomy while also managing system complexity\cite{KortenkampSimmonsEtAl2008}.
+% --- Original text end ---
+
+\begin{frame}{Robot Goal}
+\begin{itemize}
+\item Execute assigned tasks while monitoring for unexpected situations.
+\item React safely in real time (sub-millisecond in extreme cases) with noisy, uncertain sensors.
+\item Manage control and perception pipelines end-to-end.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% The primary objective of a robotic system is to accomplish a specific set of tasks, but there are often many peripheral tasks that must also be handled to ensure the robot operates in a safe and robust way. For example a robot's goal may be to pick up objects and place them in certain locations, but in order to accomplish this task the robot should also be aware of obstacles (static or dynamic) in its environment, should be robust to sensor failures or sensor noise, and more.
+% \begin{definition}[Robot Goal]
+% Complete desired tasks while monitoring and reacting to unexpected situations. Handle inputs and outputs (control/perception) from actuators and sensors in real-time\footnote{Real-time requirements are crucial, some situations require near instantaneous reactions (e.g. less than 1 ms reaction time).} and under uncertainty.
+% \end{definition}
+% --- Original text end ---
+
+\begin{frame}{Structure and Style}
+\begin{itemize}
+\item \textbf{Structure}: component hierarchy and data flow (think boxes and arrows).
+\item \textbf{Style}: computational paradigm/middleware binding components (client-server vs. pub-sub).
+\item No single recipe fits all robots; mix paradigms to reduce complexity without throttling performance.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% The design of the robot's system architecture is important for enabling the robot to achieve its goal without requiring extremely complex software systems for implementation. In general, the \textit{system architecture} is defined by two major parts: the \textit{structure} and the \textit{style}. The structure defines the way in which the system is broken down into components, as well as how the components interact with each other\footnote{The structure could be represented visually as a diagram of boxes (components) that are connected by arrows (interactions).}. Alternatively the style of the architecture refers to the computational concepts that define the implementation of the design.
+% --- Original text end ---
+
+\begin{frame}{Sense-Plan-Act Legacy}
+\begin{itemize}
+\item Early architecture: sensors feed a deliberative planner, planner feeds execution.
+\item Planning latency bottlenecked the loop, so actuators waited for global plans.
+\item No direct sensor access in the controller made the robot sluggish and non-reactive.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \subsubsection{Sense-Plan-Act Architecture}
+% This architecture is one of the first developed, and consists of three main subsystems: sensing, planning, and execution. These components were organized in a sequential fashion, with sensor data being passed to the planner, who then passes information to the controller, who sends actuator commands. However this approach has significant drawbacks. First, the planning component was a computational bottleneck that held up the controller subsystem. Second, since the controller did not have direct access to sensor data the overall system was not very \textit{reactive}.
+% --- Original text end ---
+
+\begin{frame}{Subsumption Architecture}
+\begin{itemize}
+\item Bottom-up hierarchy of behaviors implemented as layered finite state machines.
+\item Higher-level behaviors subsume lower-level ones; arbitration decides which behavior drives actuators.
+\item Much more reactive, but lacks long-horizon planning and global optimization.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \subsubsection{Subsumption Architecture}
+% An alternative to the sense-plan-act architecture that emerged not long after is the \textit{subsumption architecture}\cite{Brooks1986}. This architecture decomposes the overall desired robot behavior into sub-behaviors in a bottom-up fashion. In this hierarchical structure the higher-level behaviors \textit{subsume} the lower-level behaviors. In other words, the high-level behaviors can outsource smaller scale tasks to be handled by the low-level behaviors. 
+% From an implementation standpoint this architecture can be thought of as layers of finite state machines\footnote{Each finite state machine was often referred to as a \textit{behavior}.} that all connect sensors to actuators, and where multiple behaviors are evaluated in parallel. An arbitration mechanism is also included to choose which of the behaviors is currently activated. For example an explore behavior may sit on top of (subsume) a collision avoidance behavior, and the arbitration mechanism would decide when the exploration behavior should be overridden by the collision avoidance behavior.
+%
+% While this architecture is much more reactive than the sense-plan-act architecture, there are also disadvantages.
+% The primary disadvantage of this approach is that there is no good way to do long-term planning or behavior optimization. This can make it challenging to design the system to accomplish long-term objectives.
+% --- Original text end ---
+
+\begin{frame}{Three-tiered Architecture}
+\begin{itemize}
+\item Combines planner (strategic), executive (sequencing), and behavioral control (reactive) layers.
+\item Retains reactivity while supporting long-horizon reasoning.
+\item Interface boundaries may blur in practice, but the hierarchy guides design thinking.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch23_figs/three_tier_architecture.pdf}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% \subsubsection{Three-tiered Architecture}
+% The \textit{three-tiered architecture} is one of the most commonly used architectural designs. This architecture contains a planning, an executive, and a behavioral control level that are hierarchically linked.
+% --- Original text end ---
+
+\begin{frame}{Behavioral Control Layer}
+\begin{itemize}
+\item Implements situated skills tightly coupled to sensors/actuators (PID, filtering, obstacle avoidance).
+\item Needs awareness of when a skill applies but does not decide higher-level intent.
+\item Algorithms must run at high rates to maintain reactivity.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \paragraph{Behavioral Control Level:}
+% The components at the behavioral control level typically focus on small, localized behaviors or skills and directly interface with the robot's sensors and actuators\footnote{This layer includes algorithms from classical control theory: PID control, Kalman filtering, etc.}. These behaviors are typically \textit{situated}, meaning that they only make sense with respect to a specific situation that the robot may be in. Importantly, the behavioral control components should have an awareness of the current situation (i.e. they should be able to identify if the current situation is appropriate for a specific behavior), but they are not responsible for knowing how to \textit{change} the situation (this is left to the executive level). 
+%
+% The tight interaction between the sensors and actuators in the behavioral control level enables a high level of reactivity in this architecture. However, high reactivity also requires that the behavioral control level not incorporate algorithms with high computational complexity. In general, the algorithms at this level should be able to operate \textit{at least} several times per second.
+% --- Original text end ---
+
+\begin{frame}{Executive Layer}
+\begin{itemize}
+\item Translates high-level goals into ordered behaviors, often via hierarchical finite state machines.
+\item Handles temporal constraints, concurrency, and exception monitoring.
+\item May invoke motion planning or decision-making to expand subtasks.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \paragraph{Executive Level:}
+% The components of the executive level are responsible for translating high-level plans into low-level behaviors, orchestrating when low-level behaviors are executed, as well as monitoring for and handling exceptions. This component is typically implemented as a hierarchical finite state machine, but might also incorporate motion planning and decision making algorithms to break a high-level task into a sequence of smaller tasks. To orchestrate the sequence and timing for behaviors to be implemented, the executive considers temporal constraints on behaviors (e.g. whether two actions can be executed concurrently).
+% --- Original text end ---
+
+\begin{frame}{Planning Layer}
+\begin{itemize}
+\item Focuses on long-term decision making, mission-level scheduling, and optimization.
+\item Leaves concrete execution details to lower tiers; multiple planning horizons may coexist.
+\item Enables strategic foresight missing in purely reactive stacks.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \paragraph{Planning Level:}
+% Finally, the planning level focuses on high-level decision making and planning for long-term behavior. This forward-thinking component is crucial to optimize the long-term behavior of the robot. However, the implementation of the decisions from the planner are deferred to the executive layer. In practice it might also be useful to have multiple planning levels, for example to split up mission level planning (very abstract planning) with shorter horizon planning\footnote{This split might be useful for computational performance reasons.}.
+% --- Original text end ---
+
+\begin{frame}{Example: Office Mail Robot}
+\begin{itemize}
+\item Planner orders deliveries, schedules charging, and tracks overall coverage.
+\item Executive decomposes "Deliver to Rm 009" into navigation, door, announcement, and monitoring subtasks.
+\item Behavioral layer handles local navigation, manipulation, and failure reporting (e.g., locked door).
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \begin{example}[Office Mail Delivery Robot]
+% ... full example text ...
+% \end{example}
+% --- Original text end ---
+
+\begin{frame}{Architecture Styles}
+\begin{itemize}
+\item Middleware choices dictate how components communicate and synchronize.
+\item Client-server and publish-subscribe are common baselines; real systems often mix both.
+\item Style selection impacts reliability, latency, and coupling just as much as structural hierarchy.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \subsection{Architecture Styles}
+% In addition to choosing the robot system architecture, another very important task is to choose the architecture's \textit{style}.
+% --- Original text end ---
+
+\begin{frame}{Client-Server Middleware}
+\begin{itemize}
+\item Clients issue requests and block waiting for server responses (on-demand messaging).
+\item Simple interfaces and explicit pairing, but deadlocks arise if either side stalls.
+\item Suitable for transactional services (map lookup, motion plan query) with bounded latency.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \subsubsection{Client-Server}
+% Middleware based on the client-server style consists of message requests from clients that the server responds to (i.e. there is a request-response message pairing). This type of connection style can also be thought of as being \textit{on-demand} messaging. One of the disadvantages of such a messaging style is that the client typically waits for the response from the server before continuing, leading to potential deadlocks (e.g. if the server crashes).
+% --- Original text end ---
+
+\begin{frame}{Publish-Subscribe Middleware}
+\begin{itemize}
+\item Components broadcast asynchronously; subscribers consume data when ready.
+\item One-way interfaces reduce coupling and avoid deadlocks, though contracts are less explicit.
+\item ROS exemplifies this style for sensor streams, status topics, and coordination.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \subsubsection{Publish-Subscribe}
+% Middleware based on the publish-subscribe style uses asynchronous message broadcasting from publishers, which can then be subscribed to by other components of the system as needed. One disadvantage of this approach is that the interfaces are less well-defined (interactions are only one-way), but the main advantage is in reliability since deadlocks cannot occur (e.g. the system is robust to missing messages or messages arriving out of order).
+% The middleware ROS (Robot Operating System) is a very popular publish-subscribe middleware used within the robotics community today.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Design Principles}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Use structure (tiers, behaviors) to keep complexity contained yet reactive.
+\item Match middleware style to data-flow needs; mix request-response and pub-sub where appropriate.
+\item Balance long-term planning with real-time execution by assigning responsibilities to distinct layers.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Chapter summary emphasizing architectural goals, three-tier paradigm, and middleware trade-offs.
+% --- Original text end ---
+
+\end{document}

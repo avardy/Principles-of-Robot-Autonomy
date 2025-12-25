@@ -1,0 +1,273 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+% Bold vector shorthand for this deck
+\newcommand{\f}{\mathbf{f}}
+\newcommand{\w}{\mathbf{w}}
+\newcommand{\btau}{\boldsymbol{\tau}}
+\newcommand{\bd}{\mathbf{d}}
+
+\title{Chapter 26 - Robot Manipulation}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Manipulation Is Hard}
+\begin{itemize}
+\item Even “simple” pick-and-place requires perception, grasp planning, collision-free motion, and force control.
+\item Real scenes add clutter, uncertain object properties, and long action sequences (doors, sandwiches, tools).
+\item We study grasp modeling, evaluation, planning, and learning recipes that scale beyond brittle heuristics.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Chapter intro motivating manipulation challenges and focus on grasping fundamentals.
+% --- Original text end ---
+
+\begin{frame}{What Is a Grasp?}
+\begin{itemize}
+\item Grasp: restrain an object via forces/torques applied at contact points.
+\item High-DOF hands (e.g., Allegro: 12 finger DOF + 6 wrist DOF) explode the search space.
+\item Must pick feasible contacts, avoid body collisions, and judge robustness post-execution.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definition of grasp and bullet list of challenges (high DOF, contact choice, collisions, evaluation).
+% --- Original text end ---
+
+\begin{frame}{Contact Taxonomy}
+\begin{itemize}
+\item Point, line, and plane contacts; stability depends on which surfaces meet.
+\item Plane contacts can be approximated by weighted point forces; line contacts by point pairs.
+\item Practical analyses lean on point-on-plane abstractions for most surfaces.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.75\linewidth]{../tex/figs/ch26_figs/contacts.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Contact types subsection and Figure contacts.
+% --- Original text end ---
+
+\begin{frame}{Point-on-Plane Models}
+\begin{itemize}
+\item Decompose contact force into normal and tangential parts: $\f = \f_{\text{normal}} + \f_{\text{tangent}}$, with $f_z \ge 0$.
+\item Frictionless contact: only normal force; point contact with friction: forces inside a friction cone.
+\item Soft-finger adds torsional moment $\tau_{\text{normal}}$ bounded by $|\tau_{\text{normal}}| \le \gamma f_z$.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.55\linewidth]{../tex/figs/ch26_figs/frictioncone.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Point-on-plane contact models and friction cone discussion.
+% --- Original text end ---
+
+\begin{frame}{Linearizing Friction Cones}
+\begin{itemize}
+\item Replace the continuous cone with a pyramidal inner approximation for computation.
+\item Each edge vector becomes a candidate force direction; convex combinations stay admissible.
+\item Enables linear grasp maps and convex optimization.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.45\linewidth]{../tex/figs/ch26_figs/linearfrictioncone.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Linear approximation figure and explanation.
+% --- Original text end ---
+
+\begin{frame}{Grasp Wrench Modeling}
+\begin{itemize}
+\item Wrench $\w = \begin{bmatrix}\f \\ \btau\end{bmatrix}$ stacks forces and torques at the COM.
+\item Each contact contributes $\w_i = \begin{bmatrix}\f_i \\ \lambda(\bd_i \times \f_i)\end{bmatrix}$.
+\item Grasp map $G = [G_1 \dots G_k]$ aggregates contacts: $\w = G[\f_1^\top \! \dots \! \f_k^\top]^\top$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Wrench definition, contact wrench equation, grasp map formulation.
+% --- Original text end ---
+
+\begin{frame}{Example: 2D Grasp Wrench Space}
+\begin{itemize}
+\item Linearized cones at each contact map to discrete wrenches $\w_{i,j}$.
+\item Grasp wrench space $\mathcal{W}$ is the Minkowski sum over contact wrench sets.
+\item Larger $\mathcal{W}$ means the grasp can counter more external wrenches.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.72\linewidth]{../tex/figs/ch26_figs/2Dexample_a.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Example 2D grasp with friction cones and resulting wrench space.
+% --- Original text end ---
+
+\begin{frame}{Closure Intuition}
+\begin{itemize}
+\item Form closure locks geometry (power grasps); force closure resists any wrench via contact forces.
+\item Force closure typically needs friction and fewer contacts; form closure needs many constraints.
+\item Real hardware seeks force closure plus safety margin for bounded forces.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.65\linewidth]{../tex/figs/ch26_figs/closure.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Form vs force closure discussion and figure.
+% --- Original text end ---
+
+\begin{frame}{Force Closure Conditions}
+\begin{itemize}
+\item If $-\w \in \mathcal{W}$ for every external wrench, the grasp has force closure.
+\item Theorem: in $n$-D wrench space need $n+1$ wrenches with $n$ independent and positive coefficients summing to zero.
+\item Geometrically: the origin must lie strictly inside the grasp wrench space.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definition of force closure and vector-space theorem.
+% --- Original text end ---
+
+\begin{frame}{Need Enough Wrenches}
+\begin{itemize}
+\item 2D forces-only: need 3 force directions with positive combo summing to zero (fails for pure frictionless contacts).
+\item 2D wrenches (force+torque): need 4 directions; sometimes requires adding a third contact.
+\item 3D wrenches: require at least 7 directions (3 contacts with friction or 7 frictionless).
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.72\linewidth]{../tex/figs/ch26_figs/2Dexample_b.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Examples demonstrating closure requirements in 2D/3D.
+% --- Original text end ---
+
+\begin{frame}{Grasp Wrench Hull}
+\begin{itemize}
+\item Exact $\mathcal{W}$ is costly; convex hull of discrete wrenches $\tilde{\mathcal{W}}$ is easier.
+\item If the origin is inside $\tilde{\mathcal{W}}$, force closure holds (since $\tilde{\mathcal{W}} \subseteq \mathcal{W}$).
+\item Provides a tractable basis for grasp quality metrics.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.58\linewidth]{../tex/figs/ch26_figs/2Dexample_e.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Wrench hull definition and comparison figure.
+% --- Original text end ---
+
+\begin{frame}{Grasp Quality Metrics}
+\begin{itemize}
+\item Worst-case metric: radius $\epsilon$ of largest ball inside $\tilde{\mathcal{W}}$ signals minimum rejectable wrench.
+\item Direction where the ball touches boundary = weakest disturbance direction.
+\item Average-case metric: volume of $\tilde{\mathcal{W}}$ distinguishes grasps with same worst-case bound.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.55\linewidth]{../tex/figs/ch26_figs/2Dexample_c.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Grasp quality metrics and illustrative figures.
+% --- Original text end ---
+
+\begin{frame}{Grasp Force Optimization}
+\begin{itemize}
+\item Solve for contact forces $\{\f_i\}$ that realize desired wrench $\w$ while respecting friction cones.
+\item Second-order cone program: minimize convex cost (e.g., max contact force) subject to $\f_i \in \mathcal{F}_i$, extra limits, and $\w = G[\f_i]$.
+\item Assumes known contact poses, friction, and wrench targets—key limitations in practice.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Grasp force optimization formulation and assumptions.
+% --- Original text end ---
+
+\begin{frame}{Why Learn Grasps?}
+\begin{itemize}
+\item Model-based pipelines need accurate friction, geometry, stiffness, and force execution.
+\item Real-world uncertainty and perception noise often violate these assumptions.
+\item Learning taps data (simulation or hardware) to sidestep explicit modeling and couple perception with grasp choice.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Motivation for learning-based approaches enumerating assumptions.
+% --- Original text end ---
+
+\begin{frame}{Synthetic Data for RGB Grasp Points}
+\begin{itemize}
+\item Saxena et al. rendered thousands of textured, lit scenes with labeled grasp points.
+\item Supervised model predicts 2D grasp location, then triangulates 3D via structure-from-motion.
+\item Generalizes to novel household objects despite purely synthetic training data.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.38\linewidth]{../tex/figs/ch26_figs/saxenacup.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Saxena RGB image learning approach description and figure.
+% --- Original text end ---
+
+\begin{frame}{Dex-Net: Simulation at Scale}
+\begin{itemize}
+\item Build database of 3D objects, simulate millions of parallel-jaw grasps with uncertainty.
+\item Learn to predict probability of force closure for candidate grasps $(x, v)$.
+\item Use bandit selection online and update with outcomes for continual improvement.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.45\linewidth]{../tex/figs/ch26_figs/dexnet.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Dex-Net supervised grasp success prediction description.
+% --- Original text end ---
+
+\begin{frame}{Trial-and-Error on Hardware}
+\begin{itemize}
+\item Levine et al. ran robots for months to gather grasp attempts in clutter.
+\item End-to-end network maps RGB (and proprioception) to arm/gripper commands without explicit models.
+\item Data-hungry but eliminates reliance on object models, friction estimates, or human-designed grasp sets.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Real-world trial-and-error learning approach description.
+% --- Original text end ---
+
+\begin{frame}{Planar Pushing Beyond Grasps}
+\begin{itemize}
+\item Physics-based limit-surface models characterize when friction resists vs allows sliding.
+\item Controllers (e.g., MPC) need object properties, friction coefficients, and rigid-body assumptions.
+\item Hybrid learning augments physics with learned perception-to-parameter maps; pure learning may overfit.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Planar pushing section including friction limit surface definition and hybrid vs learning comparison.
+% --- Original text end ---
+
+\begin{frame}{Contact-Rich Tasks with Multimodal Sensing}
+\begin{itemize}
+\item Tasks like key insertion require vision plus haptics; integrating modalities manually is hard.
+\item Structured end-to-end pipelines encode raw sensor streams into compact features (autoencoders).
+\item Policies trained on features act more data-efficiently and generalize across related tasks.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Contact-rich manipulation section describing Lee et al. approach.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Grasping Principles}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Model contacts to build grasp wrench spaces, check force closure, and rate quality.
+\item Use optimization to realize desired wrenches but remember the modeling assumptions.
+\item Lean on data-driven methods when perception, friction, or contact physics are uncertain or too complex.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Chapter summary tying modeling, optimization, and learning insights together.
+% --- Original text end ---
+
+\end{document}

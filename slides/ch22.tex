@@ -1,0 +1,460 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 22 - Imitation Learning}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Imitation Learning?}
+\begin{itemize}
+\item Reward design is brittle: agents exploit misspecified objective functions and struggle when rewards are sparse.
+\item Collecting the failures required for sparse rewards can be costly or unsafe on physical robots.
+\item Imitation learning sidesteps explicit rewards by mining expert demonstrations for intent.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% As discussed in the previous chapter, the goal of reinforcement learning is to determine closed-loop control policies that result in the maximization of an accumulated reward, and RL algorithms are generally classified as either model-based or model-free. In both cases it is generally assumed that the reward function is known, and both typically rely on collecting system data to either update a learned model (model-based), or directly update a learned value function or policy (model-free).
+%
+% While successful in many settings, these approaches to RL also suffer from several drawbacks. First, determining an appropriate reward function that can accurately represent the true performance objectives can be challenging\footnote{RL agents can sometimes learn how to exploit a reward function without actually producing the desired behavior. This is commonly referred to as \textit{reward hacking}. Consider training an RL agent with a reward for each piece of trash collected. Rather than searching the area to find more trash (the desired behavior), the agent may decide to throw the trash back onto the ground and pick it up again!}. Second, rewards may be \textit{sparse}, which makes the learning process expensive in terms of both the required amount of data and in the number of failures that may be experienced when exploring with a suboptimal policy\footnote[][\baselineskip]{This issue of sparse rewards is less relevant if data is cheap, for example when training in simulation.}. This chapter introduces the \textit{imitation learning} approach to RL, where a reward function is not assumed to be known \textit{a priori} but rather it is assumed the reward function is described implicitly through expert demonstrations.
+% --- Original text end ---
+
+\begin{frame}{Problem Setup}
+\begin{itemize}
+\item Assume an MDP with states $\x \in \mathcal{X}$, controls $\bu \in \mathcal{U}$, and transition model $p(\x_t \mid \x_{t-1}, \bu_{t-1})$.
+\item Policy $\pi$ is stationary for simplicity and outputs $\bu_t = \pi(\x_t)$.
+\item Available data: demonstrations $\xi = \{(\x_0, \bu_0), (\x_1, \bu_1), \dots\}$ sampled from expert policy $\pi^*$.
+\end{itemize}
+\pause
+\begin{equation*}
+\Xi = \{\xi_1, \dots, \xi_D\}, \quad \hat{\pi}^* \approx \pi^* \text{ from data}
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% It will be assumed that the system is a Markov Decision Process (MDP) with a state $\x$ and control input $\bu$, and the set of admissible states and controls are denoted as $\mathcal{X}$ and $\mathcal{U}$\marginnote{The field of RL often uses $\bm{s}$ to express the state and $\bm{a}$ to represent an action, but $\x$ and $\bu$ will be used here for consistency with previous chapters.}. The system dynamics are expressed by the probabilistic transition model:
+% \begin{equation} \label{eq:RLmodel2}
+% p(\x_t \mid \x_{t-1}, \bu_{t-1}),
+% \end{equation}
+% which is the conditional probability distribution over $\x_t$, given the previous state and control. As in the previous chapter, the goal is to define a \textit{policy} $\pi$ that defines the closed-loop control law\footnote{This chapter will consider a stationary policy for simplicity.}:
+% \begin{equation}
+% \bu_t = \pi(\x_t).
+% \end{equation}
+%
+% The primary difference in formulation from the previous RL problem is that we do not have access to the reward function, and instead we have access to a set of expert demonstrations where each demonstration $\xi$ consists of a sequence of state-control pairs:
+% \begin{equation} \label{eq:expert}
+% \xi = \{(\x_0, \bu_0), (\x_1, \bu_1), \dots\},
+% \end{equation}
+% which are drawn from the expert policy $\pi^*$.
+% The imitation learning problem is therefore to determine a policy $\pi$ that imitates the expert policy $\pi^*$:
+% \begin{definition}[Imitation Learning Problem]
+% For a system with transition model \eqref{eq:RLmodel2} with states $\x \in \mathcal{X}$ and controls $\bu \in \mathcal{U}$, the imitation learning problem is to leverage a set of demonstrations $\Xi = \{\xi_1, \dots, \xi_D \}$ from an expert policy $\pi^*$ to find a policy $\hat{\pi}^*$ that imitates the expert policy.
+% \end{definition}
+% --- Original text end ---
+
+\begin{frame}{Behavior Cloning}
+\begin{itemize}
+\item Frame imitation as supervised learning that minimizes loss between learner and expert actions.
+\item Use demonstrations to train $\pi$ with regression or classification depending on action type.
+\item Vulnerable to compounding error because training states follow expert distribution while deployment follows learner distribution.
+\end{itemize}
+\pause
+\begin{equation*}
+\hat{\pi}^* = \arg\min_{\pi} \sum_{\xi \in \Xi} \sum_{\x \in \xi} L(\pi(\x), \pi^*(\x))
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Behavior cloning approaches use a set of expert demonstrations $\xi \in \Xi$ to determine a policy $\pi$ that imitates the expert. This can be accomplished through supervised learning techniques, where the difference between the learned policy and expert demonstrations are minimized with respect to some metric. Concretely, the goal is to solve the optimization problem:
+% \begin{equation*}
+% \hat{\pi}^* = \underset{\pi}{\arg\min} \:\:  \sum_{\xi \in \Xi}\sum_{\x \in \xi} L(\pi(\x), \pi^*(\x)),
+% \end{equation*}
+% where $L$ is the cost function\footnote{Different loss functions could include $p$-norms (e.g. Euclidean norm) or $f$-divergences (e.g. KL divergence) depending on the form of the policy.}, $\pi^*(\x)$ is the expert's action for at the state $\x$, and $\hat{\pi}^*$ is the approximated policy.
+%
+% However this approach may not yield very good performance since the learning process is only based on a set of samples provided by the expert. In many cases these expert demonstrations will not be uniformly sampled across the entire state space and therefore it is likely that the learned policy will perform poorly when not close to states found in $\xi$. This is particularly true when the expert demonstrations come from a \textit{trajectory} of sequential states and actions, such that the \textit{distribution} of the sampled states $\x$ in the dataset is defined by the expert policy. Then, when an estimated policy $\hat{\pi}^*$ is used in practice it produces its own distribution of states that will be visited, which will likely not be the same as in the expert demonstrations! This distributional mismatch leads to compounding errors, which is a major challenge in imitation learning.
+% --- Original text end ---
+
+\begin{frame}{Distribution Shift Consequences}
+\begin{itemize}
+\item Expert trajectories rarely cover the full state space, so learner rollouts enter unseen regions quickly.
+\item Small prediction errors move the robot off expert trajectories, further degrading predictions.
+\item Compounding errors motivate online data collection or alternative objectives.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% However this approach may not yield very good performance since the learning process is only based on a set of samples provided by the expert. In many cases these expert demonstrations will not be uniformly sampled across the entire state space and therefore it is likely that the learned policy will perform poorly when not close to states found in $\xi$. This is particularly true when the expert demonstrations come from a \textit{trajectory} of sequential states and actions, such that the \textit{distribution} of the sampled states $\x$ in the dataset is defined by the expert policy. Then, when an estimated policy $\hat{\pi}^*$ is used in practice it produces its own distribution of states that will be visited, which will likely not be the same as in the expert demonstrations! This distributional mismatch leads to compounding errors, which is a major challenge in imitation learning.
+% --- Original text end ---
+
+\begin{frame}{DAgger Overview}
+\begin{itemize}
+\item Mix the current learner with the expert via $\pi_i = \beta_i \pi^* + (1-\beta_i)\hat{\pi}$ and roll out to see learner-induced states.
+\item Query the expert on every visited state to obtain corrective labels and aggregate them with prior data.
+\item Retrain $\hat{\pi}$ on the growing dataset to reduce covariate shift.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.7\linewidth]{../tex/figs/ch22_figs/imitation_flow.pdf}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% One straightforward idea for addressing the issue of distributional mismatch in states seen under the expert policy and the learned policy is to simply collect new expert data as needed\footnote{Assuming the expert can be queried on demand.}. In other words, when the learned policy $\hat{\pi}^*$ leads to states that aren't in the expert dataset just query the expert for more information! The behavioral cloning algorithm that leverages this idea is known as DAgger\cite{RossGordonEtAl2011} (Dataset Aggregation).
+%
+% \begin{algorithm}[ht]
+%  \KwData{$\pi^*$}
+%  \KwResult{$\hat{\pi}^*$}
+%  $\mathcal{D} \xleftarrow{} 0$\\
+%  Initialize $\hat{\pi}$\\
+%  \For{$i=1$ \KwTo $N$}{
+%   $\pi_i = \beta_i \pi^* + (1-\beta_i)\hat{\pi}$\\
+%   Rollout policy $\pi_i$ to sample trajectory $\tau = \{\x_0, \x_1, \dots \}$\\
+%   Query expert to generate dataset $\mathcal{D}_i = \{(\x_0, \pi^*(\x_0)), (\x_1, \pi^*(\x_1)), \dots\}$\\
+%   Aggregate datsets, $\mathcal{D} \xleftarrow{} \mathcal{D} \cup \mathcal{D}_i$\\
+%   Retrain policy $\hat{\pi}$ using aggregated dataset $\mathcal{D}$
+%  }
+%  \Return $\hat{\pi}$
+%  \caption{DAgger: Dataset Aggregation}
+%  \label{alg:dagger}
+% \end{algorithm}
+%
+% As can be seen in Algorithm \ref{alg:dagger}, this approach iteratively improves the learned policy by collecting additional data from the expert. This is accomplished by rolling out the current learned policy for some number of time steps and then asking the expert what actions they would have taken at each step along that trajectory. Over time this process drives the learned policy to better approximate the true policy and reduce the incidence of distributional mismatch. One disadvantage to the approach is that at each step the policy needs to be retrained, which may be computationally inefficient.
+% --- Original text end ---
+
+\begin{frame}{Inverse RL Motivation}
+\begin{itemize}
+\item Behavior cloning reveals what the expert did, not why; poor experts, dynamics mismatch, or new constraints limit direct imitation.
+\item Learn a reward that rationalizes demonstrations so the agent can re-plan under its own dynamics.
+\item Assume feature-based reward $R(\x, \bu) = \bm{w}^\top \bm{\phi}(\x, \bu)$ to search over interpretable preferences.
+\end{itemize}
+\pause
+\begin{equation*}
+V_T^{\pi^*}(\x) \geq V_T^{\pi}(\x) \iff \bm{w}^{*\top} \bm{\mu}(\pi^*, \x) \geq \bm{w}^{*\top} \bm{\mu}(\pi, \x)
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Approaches that learn policies to imitate expert actions can be limited by several factors:
+% \begin{enumerate}
+%     \item Behavior cloning provides no way to understand the underlying reasons for the expert behavior (no reasoning about outcomes or intentions).
+%     \item The ``expert'' may actually be suboptimal\footnote{Although the discussion of inverse RL in this section will also assume the expert is optimal, there exist approaches to remove this assumption.}.
+%     \item A policy that is optimal for the expert may not be optimal for the agent if they have different dynamics, morphologies, or capabilities.
+% \end{enumerate}
+% An alternative approach to behavioral cloning is to reason about and try to learn a representation of the underlying reward function $R$ that the expert was using to generate its actions. By learning the expert's intent, the agent can potentially outperform the expert or adjust for differences in capabilities\footnote{Learned reward representations can potentially generalize across different robot platforms that tackle similar problems!}. This approach (learning reward functions) is known as \textit{inverse reinforcement learning}.
+%
+% Inverse RL approaches assume a specific parameterization of the reward function, and in this section the fundamental concepts will be presented by parameterizing the reward as a linear combination of (nonlinear) features:
+% \begin{equation*}
+% R(\x, \bu) = \w^\top  \phi(\x, \bu),
+% \end{equation*}
+% where $\w \in \R^n$ is a weight vector and $\phi(\x, \bu): \mathcal{X} \times \mathcal{U} \xrightarrow{} \R^n$ is a feature map. For a given feature map $\phi$, the goal of inverse RL can be simplified to determining the weights $\w$.
+% Recall from the previous chapter on RL that the total (discounted) reward under a policy $\pi$ is defined for a time horizon $T$ as:
+% \begin{equation*}
+% V_T^\pi(\x) = E\big[\sum_{t=0}^{T-1} \gamma^tR(\x_t, \pi(\x_t)) \mid \x_0 = \x \big].
+% \end{equation*}
+% Using the reward function $R(\x, \bu) = \w^\top  \phi(\x, \bu)$ this value function can be expressed as:
+% \begin{equation*}
+% V_T^\pi(\x) = \w^\top  \mu(\pi, \x), \quad \mu(\pi, \x) = E_{\pi}\big[\sum_{t=0}^{T-1} \gamma^t \phi(\x_t, \pi(\x_t)) \mid \x_0 = \x \big],
+% \end{equation*}
+% where $\mu(\pi, \x)$ is defined by an expectation over the trajectories of the system under policy $\pi$ (starting from state $\x$) and is referred to as the \textit{feature expectation}\footnote{Feature expectations are often computed using a Monte Carlo technique (e.g. using the set of demonstrations for the expert policy).}. One insight that can now be leveraged is that by definition the optimal expert policy $\pi^*$ will always produce a greater value function:
+% \begin{equation*}
+%     V_T^{\pi^*}(\x) \geq V_T^\pi(\x), \quad \forall \x \in \mathcal{X}, \quad \forall \pi,
+% \end{equation*}
+% which can be expressed in terms of the feature expectation as:
+% \begin{equation} \label{eq:irlcondition}
+%  {\w^*}^\top  \mu(\pi^*, \x) \geq  {\w^*}^\top  \mu(\pi, \x), \quad \forall \x \in \mathcal{X}, \quad \forall \pi.
+% \end{equation}
+% --- Original text end ---
+
+\begin{frame}{Reminder: Feature Expectations}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Concept Refresher}
+\begin{itemize}
+\item Feature expectations $\bm{\mu}(\pi) = E_{\pi}[\sum_{t=0}^{T-1} \gamma^t \bm{\phi}(\x_t, \pi(\x_t))]$ summarize discounted feature counts.
+\item Matching $\bm{\mu}(\pi)$ to $\bm{\mu}(\pi^*)$ guarantees identical returns for any unit-norm weight vector.
+\item Monte Carlo rollouts provide empirical feature expectations for both expert and learner policies.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Using the reward function $R(\x, \bu) = \w^\top  \phi(\x, \bu)$ this value function can be expressed as:
+% \begin{equation*}
+% V_T^\pi(\x) = \w^\top  \mu(\pi, \x), \quad \mu(\pi, \x) = E_{\pi}\big[\sum_{t=0}^{T-1} \gamma^t \phi(\x_t, \pi(\x_t)) \mid \x_0 = \x \big],
+% \end{equation*}
+% where $\mu(\pi, \x)$ is defined by an expectation over the trajectories of the system under policy $\pi$ (starting from state $\x$) and is referred to as the \textit{feature expectation}\footnote{Feature expectations are often computed using a Monte Carlo technique (e.g. using the set of demonstrations for the expert policy).}. One insight that can now be leveraged is that by definition the optimal expert policy $\pi^*$ will always produce a greater value function:
+% \begin{equation*}
+%     V_T^{\pi^*}(\x) \geq V_T^\pi(\x), \quad \forall \x \in \mathcal{X}, \quad \forall \pi,
+% \end{equation*}
+% which can be expressed in terms of the feature expectation as:
+% \begin{equation} \label{eq:irlcondition}
+%  {\w^*}^\top  \mu(\pi^*, \x) \geq  {\w^*}^\top  \mu(\pi, \x), \quad \forall \x \in \mathcal{X}, \quad \forall \pi.
+% \end{equation}
+% --- Original text end ---
+
+\begin{frame}{Apprenticeship Learning}
+\begin{itemize}
+\item Iteratively match feature expectations by alternating reward estimation and RL.
+\item Solve margin program $\max_{\bm{w}, t} t$ subject to $\bm{w}^\top \bm{\mu}(\pi^*) \geq \bm{w}^\top \bm{\mu}(\pi) + t$ for collected policies.
+\item Terminate when $t \leq \epsilon$; select the policy in the pool with smallest feature mismatch.
+\end{itemize}
+\pause
+\begin{equation*}
+\lVert \bm{\mu}(\pi) - \bm{\mu}(\pi^*) \rVert_2 \leq \epsilon \Rightarrow |\bm{w}^\top \bm{\mu}(\pi) - \bm{w}^\top \bm{\mu}(\pi^*)| \leq \epsilon
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% The apprenticeship learning\cite{AbbeelNg2004} algorithm attempts to avoid some of the problems with reward ambiguity by leveraging an additional insight from condition \eqref{eq:irlcondition}. Specifically, the insight is that it doesn't matter how well $\w^*$ is estimated as long as a policy $\pi$ can be found that \textit{matches the feature expectations}. Mathematically, this conclusion is derived by noting that:
+% \begin{equation*}
+% \begin{split}
+% \lVert \mu(\pi, \x) - \mu(\pi^*, \x) \rVert_2 \leq \epsilon \implies \lvert \w^\top  \mu(\pi, \x) - \w^\top  \mu(\pi^*, \x) \rvert \leq \epsilon
+% \end{split}
+% \end{equation*}
+% for any $\w$ as long as $\lVert \w \rVert_2 \leq 1$. In other words, as long as the feature expectations can be matched then the performance will be as good as the expert \textit{even if the vector $\w$ does not match $\w^*$}. Another practical aspect to the approach is that it will be assumed that the initial state $\x_0$ is drawn from a distribution $D$ such that the value function is also considered in expectation as:
+% \begin{equation*}
+% E_{\x_0 \sim D}\big[ V_T^\pi(\x_0) \big] = \w^\top  \mu(\pi), \quad \mu(\pi) = E_{\pi}\big[\sum_{t=0}^{T-1} \gamma^t \phi(\x_t, \pi(\x_t)) \big].    
+% \end{equation*}
+% This is useful to avoid having to consider all $\x \in \mathcal{X}$ when matching features\footnote{Trying to find a policy that matches features for every possible starting state $\x$ is likely intractable or even infeasible.}.
+%
+% To summarize, the goal of the apprenticeship learning approach is to find a policy $\pi$ that matches the feature expectations with respect to the expert policy (i.e. makes $\mu(\pi)$ as similar as possible to $\mu(\pi^*)$)\footnote{See Example \ref{ex:apprentice} for an example of why matching features is intuitively useful.}. This is accomplished through Algorithm \ref{alg:apprentice}, which uses an iterative approach to finding better policies.
+% \begin{algorithm}[ht]
+%  \KwData{$\mu(\pi^*)$, $\epsilon$}
+%  \KwResult{$\hat{\pi}^*$}
+%  Initialize policy $\pi_0$\\
+%  \For{$i=1$ \KwTo $\dots$}{
+%   Compute $\mu(\pi_{i-1})$ (or approximate via Monte Carlo)\\
+%   Solve problem \eqref{eq:irlcomputew} with policies $\{\pi_0, \dots, \pi_{i-1}\}$ to compute $\w_i$ and $t_i$
+%   \begin{equation} \label{eq:irlcomputew}
+%     \begin{split}
+%     (\w_i, t_i) = \underset{\w, t}{\arg\max} \:\: & t,\\
+%     \text{s.t.} \:\:& \w^\top \mu(\pi^*) \geq \w^\top \mu(\pi) + t, \quad \forall \pi \in  \{\pi_0, \dots, \pi_{i-1}\},\\
+%     & \lVert \w \rVert_2 \leq 1.
+%     \end{split}
+%   \end{equation}
+%   \If{$t_i \leq \epsilon$}{
+%     $\hat{\pi}^* \xleftarrow{}$ best feature matching policy from $\{ \pi_0, \dots, \pi_{i-1} \}$\\
+%     \Return $\hat{\pi}^*$
+%   }
+%   Use RL to find an optimal policy $\pi_i$ for reward function defined by $\w_i$\\
+%  }
+%  \caption{Apprenticeship Learning}
+%  \label{alg:apprentice}
+% \end{algorithm}
+% --- Original text end ---
+
+\begin{frame}{Apprenticeship vs. Cloning}
+\begin{itemize}
+\item Cloning memorizes local expert actions ("turn right at this intersection") and fails in unseen contexts.
+\item Apprenticeship learning pursues trajectories exhibiting the same high-level features (e.g., favoring high-speed roads).
+\item Matching features rather than raw actions yields better transfer across morphologies or maps.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \begin{example}[Apprenticeship Learning vs. Behavioral Cloning] \label{ex:apprentice}
+% Consider a problem where the goal is to drive a car across a city in as short of time as possible. In the imitation learning formulation it is assumed that the reward function is not known, but that there is an expert who shows how to drive across the city (i.e. what routes to take). A behavioral cloning approach would simply try to mimic the actions taken by the expert, such as memorizing that whenever the agent is at a particular intersection it should turn right. Of course this approach is not robust when at intersections that the expert never visited!
+%
+% The apprenticeship learning approach tries to avoid the inefficiency of behavioral cloning by instead identifying features of the expert's trajectories that are more generalizable, and developing a policy that experiences the same feature expectations as the expert. For example it could be more efficient to notice that the expert takes routes without stop signs, or routes with higher speed limits, and then try to find policies that also seek out those features!
+% \end{example}
+% --- Original text end ---
+
+\begin{frame}{Maximum Margin Planning}
+\begin{itemize}
+\item Finds $\bm{w}$ that maximizes separation between expert features and other candidates while allowing slack $v$.
+\item Similarity margin $m(\pi^*, \pi)$ assigns larger gaps to dissimilar behaviors.
+\item Handles imperfect experts by penalizing slack with hyperparameter $C$.
+\end{itemize}
+\pause
+\begin{equation*}
+\min_{\bm{w}, v} \; \lVert \bm{w} \rVert_2^2 + C v \quad \text{s.t.}\; \bm{w}^\top \bm{\mu}(\pi^*) \geq \bm{w}^\top \bm{\mu}(\pi) + m - v
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% The maximum margin planning approach\cite{RatliffBagnellEtAl2006} uses an optimization-based approach to computing the reward function weights $\w$ that is very similar to \eqref{eq:irlcomputew} but with some additional flexibility. In its most standard form the MMP optimization is:
+% \begin{equation*} \label{eq:mmp_simple}
+% \begin{split}
+% \hat{w}^* = \underset{\w}{\arg\min} \:\: & \lVert \w \rVert_2^2,\\
+% \text{s.t.} \:\:& w^\top \mu(\pi^*) \geq w^\top \mu(\pi) + 1, \quad \forall \pi \in  \{\pi_0, \pi_1, \dots\}.
+% \end{split}
+% \end{equation*}
+% Again this problem computes the reward function vector $\w$ such that the expert policy \textit{maximally outperforms} the policies in the set $\{\pi_0, \pi_1, \dots\}$.
+%
+% However the formulation is also improved in two ways: it adds a slack term to account for potential expert suboptimality and it adds a similarity function that gives more ``margin'' to policies that are dissimilar to the expert policy. This new formulation is:
+% \begin{equation} \label{eq:mmp}
+% \begin{split}
+% \hat{w}^* = \underset{\w, v}{\arg\min} \:\: & \lVert \w \rVert_2^2 + Cv,\\
+% \text{s.t.} \:\:& w^\top \mu(\pi^*) \geq w^\top \mu(\pi) + m(\pi^*, \pi) - v, \quad \forall \pi \in  \{\pi_0, \pi_1, \dots\},
+% \end{split}
+% \end{equation}
+% where $v$ is a slack variable that can account for expert suboptimality, $C > 0$ is a hyperparameter that is used to penalize the amount of assumed suboptimality, and $m(\pi^*, \pi)$ is a function that quantifies how dissimilar two policies are.
+%
+% One example of where this formulation is advantageous over the apprenticeship learning formulation \eqref{eq:irlcomputew} is when the expert is suboptimal. In this case it is possible that there is no $\w$ that makes the expert policy outperform all other policies, such that the optimization \eqref{eq:irlcomputew} returns $\w_i = 0$ and $t_i = 0$ (which is obviously not the appropriate solution). Alternatively the slack variables in the MMP formulation allow for a reasonable $\w$ to be computed. 
+% --- Original text end ---
+
+\begin{frame}{Maximum Entropy IRL}
+\begin{itemize}
+\item Enforce feature matching \emph{and} high-entropy trajectory distributions to avoid arbitrary preferences.
+\item Solution lies in exponential family $p^*(\tau, \bm{\lambda}) = \frac{1}{Z} e^{\bm{\lambda}^\top f(\tau)}$.
+\item Estimate $\bm{\lambda}$ via maximum likelihood using demonstrations and Monte Carlo rollouts from the current policy.
+\end{itemize}
+\pause
+\begin{equation*}
+\max_{p} \; -\int p(\tau) \log p(\tau) d\tau \quad \text{s.t.}\; \int p(\tau) f(\tau) d\tau = \int p_{\pi^*}(\tau) f(\tau) d\tau
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% The main idea in the maximum entropy inverse RL approach\cite{ZiebartMaasEtAl2008} is to not only match the feature expectations, but also remove ambiguity in the path distribution $p_{\pi}(\tau)$ by trying to make $p_{\pi}(\tau)$ \textit{as broadly uncommitted as possible}. In other words, find a policy that matches feature expectations but otherwise has no additional path preferences. This concept is known as the maximum entropy principle\footnote{A maximum entropy distribution can be thought of as the \textit{least informative distribution} of a class of distribution. This is useful in situations where it is undesirable to encode unintended prior information.}.
+%
+% The maximum entropy IRL approach finds a minimally preferential, feature expectation matching distribution by solving the optimization problem:
+% \begin{equation} \label{eq:maxentIRL}
+% \begin{split}
+% p^*(\tau) = \underset{p}{\arg\max} \:\: & \int -p(\tau) \log p(\tau) d\tau,\\
+% \text{s.t.} \:\:& \int p(\tau)f(\tau) d\tau = \int p_{\pi^*}(\tau)f(\tau) d\tau, \\
+% & \int p(\tau) d\tau = 1, \\
+% & p(\tau) \geq 0, \quad \forall \tau,
+% \end{split}
+% \end{equation}
+% where the objective is the mathematical definition of a distribution's entropy, the first constraint requires feature expectation matching, and the remaining constraints ensure that $p(\tau)$ is a valid probability distribution. It turns out that the solution to this problem has the exponential form:
+% \begin{equation*}
+% p^*(\tau, \blam) = \frac{1}{Z(\blam)}e^{\blam^\top  f(\tau)}, \quad Z(\blam) = \int e^{\blam^\top  f(\tau)} d\tau,
+% \end{equation*}
+% where $Z(\blam)$ normalizes the distribution, and where $\blam$ must be chosen such that the feature expectations match:
+% \begin{equation*}
+% \int p^*(\tau, \blam)f(\tau) = \int  p_{\pi^*}(\tau)f(\tau) d\tau.
+% \end{equation*}
+% --- Original text end ---
+
+\begin{frame}{Learning from Comparisons}
+\begin{itemize}
+\item Instead of full demonstrations, ask experts to rank trajectory pairs and translate answers into linear constraints.
+\item Each preference $\tau_A \succ \tau_B$ implies $(f(\tau_A) - f(\tau_B))^\top \bm{w} > 0$.
+\item Active selection of informative comparisons quickly shrinks the feasible weight set.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% One alternative approach is to use \textit{pairwise comparisons}\cite{SadighDraganEtAl2017}, where an expert is shown two different behaviors and then asked to rank which behavior is better. Through repeated queries it is possible to converge to an understanding of the underlying reward function. For example, suppose two trajectories $\tau_A$ and $\tau_B$ are shown to an expert and that trajectory $\tau_A$ is preferred. Then assuming that the reward function is:
+% \begin{equation*}
+% R(\tau) = \w^\top  f(\tau),
+% \end{equation*}
+% where $f(\tau)$ are the collective feature counts (same as in Section \ref{subsec:irl}), this comparison can be used to conclude that:
+% \begin{equation*}
+% \w^\top  f(\tau_A) > \w^\top  f(\tau_B).
+% \end{equation*}
+% In other words, this comparison has split the space of possible reward weights $\w$ in half through the hyperplane:
+% \begin{equation*}
+% (f(\tau_A) - f(\tau_B))^\top  \w = 0.
+% \end{equation*}
+% By continuously querying the expert with new comparisons\footnote{The types of comparisons shown can be selectively chosen to maximally split the remaining space of potential $\w$ in order to minimize the total number of expert queries that are required.}, the space of possible reward weights $\w$ will continue to shrink until a good estimate of $\w^*$ can be made. In practice the expert decision may be a little noisy and therefore the hyperplanes don't define hard cutoffs, but rather can be used to ``weight'' the possible reward vectors $\w$.
+% --- Original text end ---
+
+\begin{frame}{Learning from Physical Feedback}
+\begin{itemize}
+\item Humans can physically correct the robot when its actions lower the true reward.
+\item Treat corrected trajectory $\tau_H$ as higher reward than robot rollout $\tau_R$ and update weights via gradient-like step.
+\item Iteratively refine $\hat{\bm{w}}$ without requiring full demonstrations.
+\end{itemize}
+\pause
+\begin{equation*}
+\hat{\bm{w}} \leftarrow \hat{\bm{w}} + \beta (f(\tau_H) - f(\tau_R))
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Another alternative to learning from complete expert demonstrations is to simply allow the expert to physically interact with the robot to correct for undesirable behavior\cite{BajcsyLoseyEtAl2017}. In this approach, a physical interaction (i.e. a correction) is assumed to occur when the robot takes actions that result in a lower reward than the expert's action. 
+%
+% For a reward function of the form $R(\x, \bu) = \w^\top  \phi(\x, \bu)$ the robot maintains an estimate of the reward weights $\hat{\w}^*$ and the expert is assumed to have act according to a true set of optimal weights $\w^*$. Suppose the robot's policy, which is based on the estimated reward function with weights $\hat{\w}^*$, yields a trajectory $\tau_{R}$. Then, if the expert physically interacts with the robot to make a correction the resulting actual trajectory $\tau_{H}$ is assumed to satisfy:
+% \begin{equation*}
+% {\w^*}^\top f(\tau_H) \geq {\w^*}^\top f(\tau_R),
+% \end{equation*}
+% which simply states that the reward of the new trajectory is higher. This insight is then leveraged in a maximum a posteriori approach for updating the estimate $\hat{\w}^*$ after each interaction. Specifically, this update takes the form:
+% \begin{equation*}
+% \hat{\w}^* \xleftarrow{} \hat{\w}^* + \beta(\f(\tau_H) - \f(\tau_R)),
+% \end{equation*}
+% where $\beta > 0$ is a scalar step size. The robot then uses the new estimate to change its policy, and the process iterates. Note that this idea yields an approach that is similar to the concept of matching feature expectations from inverse reinforcement learning, except that the approach is iterative rather than requiring a batch of complete expert demonstrations.
+% --- Original text end ---
+
+\begin{frame}{Interaction-aware Control}
+\begin{itemize}
+\item Model joint state $\x$ with robot action $\bu_R$ and human action $\bu_H$ plus rewards $R_R$ and $R_H$.
+\item Stackelberg assumption: robot leads, human best-responds via $\bu_H^*(\x, \bu_R) = \arg\max_{\bu_H} R_H(\x, \bu_R, \bu_H)$.
+\item Robot optimizes $R_R(\x, \bu_R, \bu_H^*(\x, \bu_R))$ and uses implicit differentiation to capture $\partial \bu_H^* / \partial \bu_R$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% One common approach is to model the interaction between humans and robots as a dynamical system that has a combined state $\x$, where the robot controls are denoted $\bu_R$ and the human decisions or inputs are denoted as $\bu_H$. The transition model is therefore defined as:
+% \begin{equation*}
+% p(\x_t \mid \x_{t-1}, \bu_{R, t-1}, \bu_{H, t-1}).
+% \end{equation*}
+% In other words the interaction dynamics evolve according to the actions taken by both the robot and the human. In this interaction the robot's reward function is denoted as $R_R(\x, \bu_R, \bu_H)$ and the human's reward function is denoted as $R_H(\x, \bu_R, \bu_H)$, which are both functions of the combined state and both agent's actions\footnote{While $R_R$ and $R_H$ do not have to be the same, choosing $R_R = R_H$ may be desirable for the robot to achieve human-like behavior.}. 
+%
+% Under the assumption that both the robot and the human act optimally\footnote{While not necessarily true, this assumption is important to make the resulting problem formulation tractable to solve in practice.} with respect to their cost functions:
+% \begin{equation*}
+% \begin{split}
+% \bu_R^*(\x) &= \underset{\bu_R}{\arg\max} \:\: R_R(\x, \bu_R, \bu_H^*(\x)), \\
+% \bu_H^*(\x) &= \underset{\bu_H}{\arg\max} \:\: R_H(\x, \bu_R^*(\x), \bu_H). \\
+% \end{split}
+% \end{equation*}
+% Additionally, assuming both reward functions $R_R$ and $R_H$ are known\footnote{The reward function $R_H$ could be approximated using inverse reinforcement learning techniques.}, computing $\bu_R^*$ is still extremely challenging due to the two-player game dynamics of the decision making process. However this problem can be made more tractable by modeling it as a \textit{Stackelberg game}, which restricts the two-player game dynamics to a leader-follower structure. Under this assumption it is assumed that the robot is the ``leader'' and that as the follower the human acts according to:
+% \begin{equation} \label{eq:hri_humanpolicy}
+% \bu_H^*(\x, \bu_R) = \underset{\bu_H}{\arg\max} \:\: R_H(\x, \bu_R, \bu_H).
+% \end{equation}
+% In other words the human is assumed to see the action taken by the robot \textit{before} deciding on their own action.
+% The robot policy can therefore be computed by solving:
+% \begin{equation} \label{eq:hri_robotpolicy}
+% \bu_R^*(\x) = \underset{\bu_R}{\arg\max} \:\: R_R(\x, \bu_R, \bu_H^*(\x, \bu_R)),
+% \end{equation}
+% which can be solved using a gradient descent approach. For the gradient descent approach the gradient of:
+% \begin{equation*}
+% J(\x, \bu_R) = R_R(\x, \bu_R, \bu_H^*(\x, \bu_R)),
+% \end{equation*}
+% can be computed using the chain rule as:
+% \begin{equation*}
+% \frac{\partial J}{\partial \bu_R} = \frac{\partial R_R}{\partial \bu_R} + \frac{\partial R_R}{\partial \bu_H^*}\frac{\partial \bu_H^*}{\partial \bu_R}.
+% \end{equation*}
+% --- Original text end ---
+
+\begin{frame}{Intent Inference}
+\begin{itemize}
+\item Embed latent style parameters $\bm{\theta}$ inside human reward $R_H(\x, \bu_R, \bu_H, \bm{\theta})$.
+\item Maintain belief $b(\bm{\theta})$ updated via Bayes rule using observed human actions.
+\item Plan probing actions that trade off information gain $I(b, \bu_R)$ with nominal goal reward.
+\end{itemize}
+\pause
+\begin{equation*}
+b_{t+1}(\bm{\theta}) = \frac{1}{\eta} p(\bu_{H,t} \mid \x_t, \bu_{R,t}, \bm{\theta}) b_t(\bm{\theta})
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% One approach to intent inference\cite{SadighLandolfiEtAl2018} is to model the underlying behavioral differences through a set of unknown parameters $\btheta$ which need to be inferred by observing the human's behavior. Mathematically this is expressed by defining the human's reward function $R_H(\x, \bu_R, \bu_H, \btheta)$ to be a function of $\btheta$, and assuming the human chooses actions according to:
+% \begin{equation*}
+% p(\bu_H \mid \x, \bu_R, \btheta) \propto e^{R_H(\x, \bu_R, \bu_H, \btheta)}.
+% \end{equation*}
+% In other words this model assumes the human is exponentially more likely to pick optimal actions\footnote{This assumption was also used in the Maximum Entropy IRL approach.}, but that they may pick suboptimal actions as well.
+%
+% The objective of intent inference is therefore to estimate the parameters $\btheta$, which can be accomplished through Bayesian inference methods. In the Bayesian approach a \textit{probability distribution} over parameters $\btheta$ is updated based on observations. Specifically the belief distribution is denoted as $b(\btheta)$, and given an observation of the human's actions $\bu_H$ the belief distribution is updated as:
+% \begin{equation*}
+% b_{t+1}(\btheta) = \frac{1}{\eta}p(\bu_{H,t} \mid \x_t, \bu_{R,t}, \btheta)b_t(\btheta),
+% \end{equation*}
+% where $\eta$ is a normalizing constant.
+%
+% While the robot could sit around and \textit{passively} observe the human act to collect samples for the Bayesian updates, it is often more efficient for the robot to \textit{probe} the human to take interesting actions that are more useful for revealing the intent parameters $\btheta$. This can be accomplished by choosing the robot's reward function to be:
+% \begin{equation*}
+% R_R(\x, \bu_R, \bu_H, \btheta) = I(b(\btheta), \bu_R) + \lambda R_{\text{goal}}(\x, \bu_R, \bu_H, \btheta)
+% \end{equation*}
+% where $\lambda>0$ is a tuning parameter and $I(b(\btheta), \bu_R)$ denotes a function that quantifies the amount of information gained with respect to the belief distribution from taking action $\bu_R$.
+% --- Original text end ---
+
+\begin{frame}{Reminder: IL Toolkit}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Behavior cloning is simple but sensitive to covariate shift; DAgger mitigates by querying experts online.
+\item Inverse RL families learn rewards via feature matching, margins, or maximum entropy to generalize beyond demonstrations.
+\item Comparisons, physical feedback, and interaction-aware modeling extend imitation learning to realistic human-robot settings.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Entire chapter summary discussing imitation learning approaches, inverse RL variants, learning from alternative supervision, and interaction-aware control/intent inference.
+% --- Original text end ---
+
+\end{document}

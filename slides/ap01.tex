@@ -1,0 +1,180 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Appendix 01 - Machine Learning Primer}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Lean on Learning?}
+\begin{itemize}
+\item First-principles models struggle with occlusions, weather, human intent, or combinatorial object variation.
+\item Data-driven methods capture patterns from experiments or simulation when analytic models fall short.
+\item Modern autonomy blends physics insight with learning pipelines for perception, control, and decision making.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Intro paragraphs motivating ML for autonomy when first-principles models break down.
+% --- Original text end ---
+
+\begin{frame}{Problem Taxonomy}
+\begin{itemize}
+\item \textbf{Supervised}: learn $y = f(x)$ from labeled pairs $\{(x_i, y_i)\}_{i=1}^n$ for regression or classification.
+\item \textbf{Unsupervised}: seek patterns or structure directly from unlabeled samples $\{x_i\}$.
+\item Robotics heavily favors supervised imitation or perception tasks but still borrows unsupervised tools for features.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Definitions of supervised and unsupervised learning plus regression/classification discussion.
+% --- Original text end ---
+
+\begin{frame}{Choosing Function Classes}
+\begin{itemize}
+\item Parametric models (e.g., $f(x)=Wx$ or neural nets) expose finite parameters and analytical forms.
+\item Non-parametric methods (e.g., $k$-NN) store data and answer via local neighborhoods or kernels.
+\item Practical choice hinges on data volume, desired inductive bias, and computation budget.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Paragraph describing parametric versus non-parametric models and examples.
+% --- Original text end ---
+
+\begin{frame}{Regression Losses}
+\begin{itemize}
+\item $\ell_2$: $L = \tfrac{1}{n}\sum_{i=1}^n (f(x_i) - y_i)^2$ favors small average residuals but is outlier-sensitive.
+\item $\ell_1$: $L = \tfrac{1}{n}\sum_{i=1}^n \lvert f(x_i) - y_i \rvert$ treats errors uniformly and is robust.
+\item Choice encodes tolerance to noise vs. outliers and shapes the optimization landscape.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Loss section describing l2 and l1 objectives for regression.
+% --- Original text end ---
+
+\begin{frame}{Classification Losses}
+\begin{itemize}
+\item $0$-$1$ loss counts misclassifications: $L = \tfrac{1}{n}\sum_{i=1}^n \mathbf{1}\{f(x_i) \neq y_i\}$ (non-differentiable).
+\item Cross entropy: $L = -\tfrac{1}{n}\sum_{i=1}^n y_i^\top \log f(x_i)$, encourages confident, correct probabilities.
+\item Softmax-normalized outputs plus cross entropy give smooth gradients for large-class problems.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Paragraph on classification losses, indicator loss, and cross-entropy interpretation.
+% --- Original text end ---
+
+\begin{frame}{Model Training Basics}
+\begin{itemize}
+\item Fix a parametric template $f_\theta$ and minimize chosen loss to fit $\theta$.
+\item Analytical solutions exist in special cases like linear least squares with $\theta^* = (X^\top X)^{-1}X^\top Y$.
+\item Most robotics-grade models require iterative numerical optimization.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Linear least squares example and discussion of analytic vs numerical training.
+% --- Original text end ---
+
+\begin{frame}{Gradient and Stochastic Descent}
+\begin{itemize}
+\item Gradient descent updates $\theta \leftarrow \theta - \eta \nabla_\theta L$, using full dataset gradients.
+\item Stochastic gradient descent samples a batch $S$ to estimate the gradient cheaply each iteration.
+\item Learning rate, batch size, and variance reduction tricks govern convergence speed and stability.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Section on numerical optimization, gradient descent, and stochastic approximation.
+% --- Original text end ---
+
+\begin{frame}{Generalization and Regularization}
+\begin{itemize}
+\item Split data into training/test folds to detect overfitting when training loss $\ll$ test loss.
+\item Add $\ell_2$ or $\ell_1$ penalties on $\theta$ to tame model complexity during training.
+\item Other tools (dropout, larger datasets) further promote models that transfer to unseen scenarios.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Section on training/test splits, overfitting diagnosis, and regularization techniques including dropout.
+% --- Original text end ---
+
+\begin{frame}{Neural Network Architecture}
+\begin{itemize}
+\item Compose layers $h_{k} = f_k(W_k h_{k-1} + b_k)$ ending with \(\hat{y} = f_K(W_K h_{K-1} + b_K)\).
+\item Depth, hidden dimension, and activation selection set model capacity.
+\item Nonlinear activations keep the stack expressive; differentiability keeps gradients tractable.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Neural network structure equations and discussion of parameters, layers, and activations.
+% --- Original text end ---
+
+\begin{frame}{Activation Functions}
+\begin{itemize}
+\item Sigmoid, tanh, ReLU, and leaky ReLU balance smoothness, saturation, and sparse gradients.
+\item All are easy to differentiate (or sub-differentiate) for backprop.
+\item Selection trades vanishing gradients vs. nonlinearity and computational cost.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.75\linewidth]{../tex/figs/app01_figs/activations.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Activation-function descriptions and Figure activations.
+% --- Original text end ---
+
+\begin{frame}{Training Neural Networks}
+\begin{itemize}
+\item Backpropagation applies chain rule through layered computations to get $\tfrac{\partial L}{\partial \theta}$ efficiently.
+\item SGD variants (momentum, Adam, etc.) scale to millions of parameters.
+\item Regularization and dropout combat overfitting despite flexible function classes.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Sections on training neural networks, backpropagation overview, and regularization/dropout.
+% --- Original text end ---
+
+\begin{frame}{Backpropagation as Dynamic Programming}
+\begin{itemize}
+\item Treat computation as a graph; forward pass caches intermediate values.
+\item Reverse-mode differentiation reuses partial derivatives to avoid redundant work.
+\item View aligns with auto-diff tools such as PyTorch or TensorFlow used in robotics stacks.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.58\linewidth]{../tex/figs/app01_figs/backprop.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Backpropagation and computational graph section plus Figure backprop.
+% --- Original text end ---
+
+\begin{frame}{Example: Scalar Network}
+\begin{itemize}
+\item Toy model $f(x) = (x+a)(x+b)$ with $\ell_2$ loss showcases backprop savings.
+\item Forward pass computes $z_1, z_2, z_3$ once; backward pass reuses gradients to get $\partial L/\partial a, \partial L/\partial b$.
+\item Cuts operations from 14 (naive) to 9, illustrating why backprop matters even for tiny graphs.
+\end{itemize}
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{../tex/figs/app01_figs/graph.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Worked example and computational graph figure illustrating backprop efficiency.
+% --- Original text end ---
+
+\begin{frame}{Reminder: ML Foundations}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Match supervised/unsupervised formulations and loss choices to the robotics task at hand.
+\item Train with optimization methods that scale, then verify generalization via splits and regularizers.
+\item Neural nets plus backprop provide expressive models—keep them grounded with good data and structure.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Appendix summary tying task taxonomy, loss/optimization, and neural network training guidance.
+% --- Original text end ---
+
+\end{document}

@@ -1,0 +1,45 @@
+% Shared Beamer configuration for Principles of Robot Autonomy decks
+\usetheme{Boadilla}
+%\usecolortheme{seagull}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{xparse}
+
+% Increase vertical spacing between list items for readability.
+\setlist[itemize]{itemsep=0.75em}
+\setlist[enumerate]{itemsep=0.75em}
+
+% Define bold symbol macros if not already defined
+\providecommand{\x}{\boldsymbol{x}}
+\providecommand{\z}{\boldsymbol{z}}
+\providecommand{\bxi}{\boldsymbol{\xi}}
+\providecommand{\bu}{\boldsymbol{u}}
+\providecommand{\bmu}{\boldsymbol{\mu}}
+\providecommand{\bSigma}{\boldsymbol{\Sigma}}
+\providecommand{\y}{\boldsymbol{y}}
+\providecommand{\m}{\mathcal{M}}
+\providecommand{\bc}{\boldsymbol{c}}
+\providecommand{\R}{\mathbb{R}}
+
+% Animated lists by default, with override via optional overlay argument.
+\beamerdefaultoverlayspecification{<+->}
+
+% Paragraphs reveal sequentially by default.
+\AtBeginDocument{%
+  \ifx\paragraph\undefined
+    \newcommand{\paragraph}[1]{\textbf{#1}\par\onslide<+->{} }
+  \else
+    \let\origparagraph\paragraph
+    \renewcommand{\paragraph}[1]{\origparagraph{#1}\par\onslide<+->{} }
+  \fi
+}
+
+% Add other shared packages or theme settings above this line as needed.
+
+\subtitle{COMP 4766}
+\author[Andrew Vardy]{Andrew Vardy\\
+Adapted from Stanford University's ``Principles of Robot Autonomy''}
+\date{\today}

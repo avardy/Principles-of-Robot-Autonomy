@@ -1,0 +1,181 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 18 - Sensor Fusion}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{Why Sensor Fusion?}
+\begin{itemize}
+\item Combining heterogeneous sensors reduces the uncertainty that any single modality leaves behind.
+\item Redundancy and diversity guard against range, FOV, or weather-related failures.
+\item Fusion enables more reliable localization and perception pipelines for autonomy stacks.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.75\linewidth]{../tex/figs/ch18_figs/carsensors.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Intro paragraphs plus Figure \ref{fig:reduceuncertainty} on sensor strengths/weaknesses and motivation for multi-sensor fusion.
+% --- Original text end ---
+
+\begin{frame}{Data Imperfections}
+\begin{itemize}
+\item Noise, bias, and coarse quantization all degrade raw measurements.
+\item Correlations, disparities, and inconsistencies appear simultaneously in practice.
+\item Robust fusion must withstand multiple imperfection types acting at once.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Data-related taxonomy section discussing uncertainty, imprecision, granularity, correlation, disparity, inconsistency.
+% --- Original text end ---
+
+\begin{frame}{Fusion Relationships}
+\begin{itemize}
+\item Low-, intermediate-, and high-level fusion respectively mix signals, features, and decisions.
+\item Competitive sensors provide redundant measurements, complementary ones fill gaps, and cooperative sensors unlock new observables.
+\item Reliability grows with competition, completeness with complementarity, and scope with cooperation.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Fusion-related taxonomy paragraphs defining low/intermediate/high level fusion and competitive/complementary/cooperative roles.
+% --- Original text end ---
+
+\begin{frame}{Architectural Choices}
+\begin{itemize}
+\item Centralized fusion aggregates every measurement before computing an optimal estimate but demands heavy comms.
+\item Decentralized setups split the system into several centralized islands, inheriting similar bandwidth costs.
+\item Distributed approaches process locally first, scaling better at the expense of globally optimal performance.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Architectural taxonomy section on centralized, decentralized, and distributed fusion architectures.
+% --- Original text end ---
+
+\begin{frame}{Bayesian Sensor Fusion}
+\begin{itemize}
+\item Model unknown quantities as random variables and capture knowledge in probability distributions.
+\item Bayes' rule blends heterogeneous measurements while propagating uncertainty.
+\item Probabilistic framing naturally handles missing data and classification decisions.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Bayesian approach to sensor fusion section describing reasons for probabilistic modeling.
+% --- Original text end ---
+
+\begin{frame}{Competitive Fusion Example}
+\begin{itemize}
+\item Two conditionally independent Gaussian sensors yield a joint Gaussian measurement.
+\item The fused estimate weights each sensor by its variance and lowers total uncertainty.
+\end{itemize}
+\pause
+\begin{equation*}
+\mu = \frac{y_1\sigma_2^2 + y_2\sigma_1^2}{\sigma_1^2 + \sigma_2^2}, \quad \sigma = \frac{\sigma_1^2 \sigma_2^2}{\sigma_1^2 + \sigma_2^2}
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Example \ref{ex:competitive} showing fused Gaussian measurement and resulting mean/variance.
+% --- Original text end ---
+
+\begin{frame}{Kalman Filter for Fusion}
+\begin{itemize}
+\item Linear dynamics $\x_t = A_t \x_{t-1} + B_t \bu_t + \bm{\epsilon}_t$ and linear measurements $\z_t = C_t \x_t + \bm{\delta}_t$ fit multi-sensor data.
+\item The filter consumes every measurement at time $t$ simultaneously via the correction step.
+\item Covariance matrices $\bm{R}_t$ and $\bm{Q}_t$ bias updates toward higher-precision sensors through the Kalman gain.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Kalman filter sensor fusion subsection with dynamics/measurement equations and discussion of covariance weighting.
+% --- Original text end ---
+
+\begin{frame}{State Augmentation Tricks}
+\begin{itemize}
+\item The state vector can incorporate biases, offsets, or health indicators alongside kinematics.
+\item Augmenting the state lets the EKF track auxiliary quantities with the same predict--correct loop.
+\item Capturing these latents improves downstream fusion accuracy and resiliency.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Paragraph noting that \x may include auxiliary states such as sensor bias or health information.
+% --- Original text end ---
+
+\begin{frame}{Self-Driving Car Example}
+\begin{itemize}
+\item State $[p, v, a]^\top$ follows a discretized double-integrator with process noise $\bm{\epsilon}_t$.
+\item Lidar and GNSS both observe position while the IMU senses acceleration, forming the measurement matrix.
+\item Sensor-specific variances populate $\bm{Q}_t$, letting the Kalman gain favor GNSS when it is more precise.
+\end{itemize}
+\pause
+\begin{equation*}
+\begin{bmatrix}
+z_{\text{lidar}} \\
+z_{\text{gnss}} \\
+z_{\text{imu}}
+\end{bmatrix}
+=
+\begin{bmatrix}
+1 & 0 & 0 \\
+1 & 0 & 0 \\
+0 & 0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+p \\
+v \\
+a
+\end{bmatrix}
++ \bm{\delta}_t
+\end{equation*}
+\end{frame}
+% --- Original text start ---
+% Example \ref{ex:car} describing longitudinal vehicle model, measurement matrix, and covariance choices.
+% --- Original text end ---
+
+\begin{frame}{Fusion Benefit Visualization}
+\begin{itemize}
+\item Adding the lower-variance GNSS signal sharpens the fused position estimate.
+\item Even noisier sensors can help, though their impact is smaller.
+\item Simulation underscores how the Kalman filter mixes temporal dynamics with cross-sensor data.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.8\linewidth]{../tex/figs/ch18_figs/carKFfusion.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Figure \ref{fig:fusionexample} comparing lidar-only vs. lidar+GNSS+IMU position estimates.
+% --- Original text end ---
+
+\begin{frame}{Fusion Challenges}
+\begin{itemize}
+\item Registration mismatches in time or space must be corrected before fusing.
+\item Biases creep in during coordinate transforms and require calibration or estimation.
+\item Sensor correlations, data association, and out-of-sequence packets complicate inference.
+\item Multi-agent settings intensify communication constraints that drive these issues.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Challenges section covering registration, bias, correlation, data association, and out-of-sequence measurements.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Sensor Fusion Toolbox}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Key Takeaways}
+\begin{itemize}
+\item Use probabilistic models (Kalman or beyond) to combine heterogeneous sensors coherently.
+\item Competitive/complementary/cooperative sensing patterns dictate reliability vs. coverage trade-offs.
+\item Address registration, bias, and association early to unlock the promised uncertainty reduction.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Chapter summary themes on Bayesian framing, taxonomy of fusion strategies, and practical challenges.
+% --- Original text end ---
+
+\end{document}

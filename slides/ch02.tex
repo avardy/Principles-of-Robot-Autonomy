@@ -1,0 +1,659 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Chapter 02 - Open-Loop Motion Planning \& Control}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}{From Models to Control}
+\begin{itemize}
+\item Kinematic and dynamic models give us differential equations that describe how the robot moves.
+\item The next challenge is to pick the control inputs that drive those models toward desired behavior.
+\item Control laws map states (or time alone) to inputs so the robot follows useful trajectories.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% The previous chapter on motion planning and control introduced techniques for developing mathematical models to describe robot motion by analyzing its kinematics and dynamics. These models are typically expressed in the form of differential equations that are functions of a set of generalized coordinates/velocities and inputs to the system.
+% The next step is to discover how these models can be leveraged for robot motion planning and control. In particular this chapter and the next will focus on robot control, where the goal is to determine what inputs to apply to the system to achieve desirable behavior. To address the robot control problem a \textit{control law} must be developed, which is a set of rules or a mathematical function that determines what inputs should be applied to the system at any given time.
+% --- Original text end ---
+
+\begin{frame}{Open vs Closed Loop}
+\begin{itemize}
+\item Open-loop laws ignore new observations, while closed-loop controllers react to feedback.
+\item The classic thought experiment: walk toward a chair with your eyes closed (open loop) versus open (closed loop).
+\item Classification matters because robustness, modeling effort, and computation all depend on feedback usage.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% The ecosystem of techniques for robot control is vast, and control laws can generally be categorized in several ways. One of the most fundamental classifications for a control law is if it is \textit{open-loop} or \textit{closed-loop}. Open-loop control laws do not rely on observations to influence the choice of control input, while closed-loop control laws do. As a practical example, suppose you are standing in a room and wanted to walk to the other side and sit in a chair. For open-loop control you might look at where the chair is relative to your current position, think about how to walk there, and then \textit{with your eyes closed} walk to the chair and sit. Alternatively, for closed-loop control you might keep \textit{your eyes open} the whole time.
+% --- Original text end ---
+
+\begin{frame}{Why Study Open Loop}
+\begin{itemize}
+\item Open-loop execution can be brittle, yet it delivers globally optimal plans when paired with trajectory optimization.
+\item Solving optimal control problems yields both an optimal state trajectory and a matching input schedule.
+\item Applying that schedule open-loop reproduces the optimal motion—until the next chapter closes the loop.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% In practice, open-loop control laws suffer from robustness issues since they do not make corrections based on real-time observations. However, open-loop control is still an extremely important topic within the context of robotics.
+% In particular, suppose you are interested not just in getting your robot from one point to another, but doing so in the \textit{best} or \textit{optimal} way. This problem, known as \textit{trajectory optimization} or \textit{optimal control}\footnote{The terms trajectory optimization and optimal control will often be used interchangeably.}, can be solved to obtain an optimal trajectory for the robot along with the corresponding sequence of control inputs. In theory, applying this optimal control sequence as an open-loop control law would then make the robot follow the optimal trajectory. 
+% --- Original text end ---
+
+\begin{frame}{Chapter Roadmap}
+\begin{itemize}
+\item Review robot models and turn them into optimal control problems.
+\item Study numerical methods for solving those problems.
+\item Leverage differential flatness and time scaling to design feasible trajectories efficiently.
+\item Prepare for the closed-loop techniques that follow in Chapter 3.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% This chapter will discuss several common techniques related to optimal control and trajectory optimization, including a brief review on dynamic/kinematic models, the formulation of the optimal control problem, approaches for solving optimal control problems, and some other topics useful in the context of robotics. The next chapter will then focus on the development of closed-loop control laws, including approaches that leverage the open-loop optimal control techniques discussed here.
+% --- Original text end ---
+
+\begin{frame}{Defining Open-Loop Control}
+\begin{itemize}
+\item Open-loop laws depend solely on time and the initial condition.
+\item They generate an input schedule without checking the current state again.
+\item This is the dominant structure produced by optimal control solvers.
+\end{itemize}
+\pause
+\[
+\bm{u}(t) = f(\x(t_0), t)
+\]
+\end{frame}
+% --- Original text start ---
+% \notessection{Open-Loop Motion Planning \& Control}
+% This chapter and the next will focus on two of the most fundamental classifications for a control law, namely whether it is \textit{open-loop} or \textit{closed-loop}. In particular, this chapter will focus on open-loop control laws that arise from the study of optimal control and trajectory optimization problems\cite{Kirk2004}\cite[\baselineskip]{Murray2009}. In general, open-loop control laws depend only on time and initial condition of the system.
+% 
+% \begin{definition} [Open-loop control] \label{def:openloop}
+% If the control law is determined as a function of time for a specified initial state value, i.e., 
+% \begin{equation}
+%     \bm{u}(t) = f ( \x ( t_0 ) , t ),
+% \end{equation}
+% then it is said to be in open-loop form.
+% \end{definition}
+% --- Original text end ---
+
+\begin{frame}{Dynamics Model Recap}
+\begin{itemize}
+\item We assume an ODE model $\dot{\x} = a(\x,\bm{u},t)$ built from kinematics, dynamics, or both.
+\item The state $\x \in \mathbb{R}^n$ bundles generalized coordinates and velocities; $\bm{u} \in \mathbb{R}^m$ collects inputs.
+\item This compact vector form captures $n$ coupled first-order equations.
+\end{itemize}
+\pause
+\[
+\dot{\x}(t) = a(\x(t), \bm{u}(t), t)
+\]
+\end{frame}
+% --- Original text start ---
+% Chapter 1 discussed techniques for deriving kinematic and dynamic models of a robot in the form of ordinary differential equations (ODE). Such models are extremely useful in the context of robot motion planning and control, and are essential in the context of optimal control.
+% For the remainder of this chapter it will be assumed that such a model has already been identified and is expressed in the form
+% \begin{equation} \label{eq:dynamics}
+%     \dot{\x}(t) = a(\x(t),\bm{u}(t),t),
+% \end{equation}
+% where $\x \in \R^n$ may be comprised of generalized coordinates $\xi$ and velocities $\dot{\xi}$ and will be referred to as the robot's \textit{state}, $\bm{u} \in \R^m$ is the control input, and the function $a : \R^n \times \R^m \times \R \xrightarrow{} \R^n$ defines the model. While the set of ODEs \eqref{eq:dynamics} may have been derived by considering kinematics, dynamics, or a combination of the two, this model will be generally referred to as the robot's \textit{dynamics} model.
+% --- Original text end ---
+
+\begin{frame}{Component-Wise Dynamics}
+\begin{itemize}
+\item Each state component $x_i$ has its own differential equation driven by every state and input.
+\item Writing them explicitly shows how high-dimensional models couple states and controls.
+\item This is the form most numerical integrators consume directly.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% For clarity, note that \eqref{eq:dynamics} is a compact expression written in vector form for the system of $n$ first-order differential equations 
+% \begin{align*}
+%     \dot{x}_1(t)&=a_1(x_1(t), x_2(t), \dots, x_n(t), u_1(t), u_2(t), \dots, u_m(t), t)\\
+%     \dot{x}_2(t)&=a_2(x_1(t), x_2(t), \dots, x_n(t), u_1(t), u_2(t), \dots, u_m(t), t)\\
+% &\vdots \\
+%     \dot{x}_n(t)&=a_1(x_1(t), x_2(t), \dots, x_n(t), u_1(t), u_2(t), \dots, u_m(t), t),
+% \end{align*}
+% where $x_i$ is the $i$-th component of the vector $\x$ and $u_j$ is the $j$-th component of the vector $\bm{u}$.
+% --- Original text end ---
+
+\begin{frame}{Integrating the Model}
+\begin{itemize}
+\item Given $\x(t_0)$ and an input schedule, we integrate the ODE to predict the trajectory.
+\item Forward Euler updates use $\dot{\x}(t) \approx (\x_{i+1}-\x_i)/h_i$ evaluated at the current time.
+\item Runge--Kutta variants improve accuracy but follow the same principle.
+\end{itemize}
+\pause
+\[
+\x_{i+1} = \x_i + h_i a(\x_i, \bm{u}_i, t_i)
+\]
+\end{frame}
+% --- Original text start ---
+% Solutions to the set of differential equations \eqref{eq:dynamics} are trajectories of the system. Given an initial condition $\x(t_0)$ and a control function $\bm{u}(t)$ defined for $t \geq t_0$, any technique for solving ODEs can be applied to compute the state trajectory $\x(t)$ for $t > t_0$. Common numerical integration approaches for solving the ODE system include the Runge-Kutta schemes, of which the most common are the forward or backward Euler schemes. The forward Euler scheme approximates $\dot{\x}(t) \approx \frac{\x_{i+1} - \x_i}{h_i}$ with $h_i = t_{i+1} - t_{i}$ and evaluates $a$ at time $t_i$. This leads to the recursive update
+% \begin{equation}
+% \x_{i+1} = \x_{i} + h_i a(\x_i,\bm{u}_i,t_i), \quad i = 0, 1,\dots
+% \end{equation}
+% where $\bm{u}_i = \bm{u}(t_i)$ and $\x_i = \x(t_i)$.
+% --- Original text end ---
+
+\begin{frame}{Optimal Control Ingredients}
+\begin{itemize}
+\item Start with dynamics $\dot{\x} = a(\x,\bm{u},t)$.
+\item Specify a cost or reward that scores candidate trajectories.
+\item Use a search or optimization algorithm to find the best admissible inputs.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Perhaps the most common open-loop control laws used for motion planning and control in robotics are synthesized by formulating and solving optimal control problems. These problems are designed to answer the question: from the current state of the robot, $\x(t_0)$, what future control inputs $\bm{u}(t)$ would make the robot follow an optimal future trajectory? In general, generating optimal open-loop control laws require three major components:
+% \begin{enumerate}
+%     \item A model \eqref{eq:dynamics} that describes the robot's motion as a function of the input, developed by analyzing the robot's kinematics/dynamics.
+%     \item A metric that defines the quality of a particular trajectory, known as a \textit{cost function} or a \textit{reward function}\footnote{The term \textit{cost} is more commonly used in optimal control literature, while \textit{reward} is used in the reinforcement learning literature.}.
+%     \item An algorithm for searching the space of possible control inputs to find one that corresponds to an optimal trajectory\footnote[][\baselineskip]{For example, convex optimization solvers}.
+% \end{enumerate}
+% --- Original text end ---
+
+\begin{frame}{Cost Function Form}
+\begin{itemize}
+\item A terminal cost $h(\x(t_f),t_f)$ rewards the final state.
+\item Stage costs $g(\x,\bm{u},t)$ accumulate along the trajectory.
+\item Together they encode goals such as speed, effort, or accuracy.
+\end{itemize}
+\pause
+\[
+J = h(\x(t_f), t_f) + \int_{t_0}^{t_f} g(\x(t), \bm{u}(t), t)\,dt
+\]
+\end{frame}
+% --- Original text start ---
+% In this chapter the performance metric that defines the quality of a particular trajectory will be referred to as the \textit{cost function}. The standard form for defining the cost function in optimal control problems is
+% \begin{equation} \label{eq:cost}
+% J(\x(t), \bm{u}(t), t) = h(\x(t_f),t_f) + \int_{t_0}^{t_f} g(\x(t),\bm{u}(t),t) dt.
+% \end{equation}
+% where $h(\x(t_f),t_f)$ is referred to as a \textit{terminal cost} and where the integral can be viewed as a sum of \textit{stage costs} induced along the path from times $t_0$ to $t_f$.
+% In robotics, the function $J$ might quantify objectives such as ``get from point A to point B as quickly as possible” or “get from point A to point B while using as little effort as possible”. 
+% --- Original text end ---
+
+\begin{frame}{State and Input Constraints}
+\begin{itemize}
+\item Admissible states $\mathcal{X}$ encode safety or task limits.
+\item Admissible inputs $\mathcal{U}$ capture actuator bounds and rate limits.
+\item Inequality descriptions (e.g., $x_1 \geq 0$) are a convenient way to define these sets.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Constraints can also be considered in the optimal control problem. In the field of robotics it is common to consider constraints on the state and control that are expressed compactly as
+% \begin{equation} \label{eq:constraints}
+% \x(t) \in \mathcal{X}, \quad \bm{u}(t) \in \mathcal{U},
+% \end{equation}
+% where $\mathcal{X}$ is the set of all \textit{admissible} states and $\mathcal{U}$ is the set of all \textit{admissible} control inputs. A common way to define the sets $\mathcal{X}$ and $\mathcal{U}$ is by a set of inequalities on $x$ and $u$, respectively. For example, let's assume the first element of $\x$ is constrained by $x_1 \geq 0$, then $\mathcal{X} = \{x \:|\: x_1 \geq 0\}$ such that any vector $\x$ with $x_1 \geq 0$ belongs to the set $\mathcal{X}$ (and is therefore \textit{admissible}). \marginnote{Constraints are commonly used in the context of robotics to account for actuator limits (e.g. how fast the wheels can turn, how much torque a motor can produce), or constraints on the trajectory itself (e.g. avoid collisions with surrounding objects).}
+% --- Original text end ---
+
+\begin{frame}{Formal Optimal Control Problem}
+\begin{itemize}
+\item Minimize the cost while obeying dynamics, constraints, and initial conditions.
+\item The solution is an admissible trajectory $\x^*(t)$ with matching inputs $\bm{u}^*(t)$.
+\item Final time $t_f$ can be fixed or optimized.
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+\underset{\bm{u},\x}{\text{min}}\;& h(\x(t_f),t_f) + \int_{t_0}^{t_f} g(\x,\bm{u},t)dt\\
+\text{s.t.}\;& \dot{\x} = a(\x,\bm{u},t),\quad \x\in\mathcal{X},\ \bm{u}\in\mathcal{U},\ \x(t_0)=\x_0
+\end{aligned}
+\]
+\end{frame}
+% --- Original text start ---
+% \begin{definition}[Optimal Control Problem] 
+% An optimal control problem seeks an \textit{admissible control} $\bm{u}(t)$ which causes the system (\ref{eq:dynamics}) to follow an \textit{admissible trajectory} $\bm{x}(t)$ that minimizes a performance metric $J(\x(t),\bm{u}(t),t)$. This problem can be expressed as an optimization problem:
+% \begin{equation} \label{eq:OCP}
+% \begin{split}
+% \underset{\bm{u},\x}{\text{minimize}} \:\: & h(\x(t_f),t_f) + \int_{t_0}^{t_f} g(\x(t),\bm{u}(t),t) dt,\\
+% \text{s.t.} \:\:& \dot{\x}(t) = a(\x(t),\bm{u}(t),t), \\
+% &\x(t) \in \mathcal{X}, \quad \bm{u}(t) \in \mathcal{U}, \\
+% &\x(t_0) = \x_0,
+% \end{split}
+% \end{equation}
+% where $t_0$ is the initial time, $t_f$ is either a fixed final time or an optimization variable, and $x_0$ is a known initial condition.
+% \end{definition} 
+% The solution to the optimal control problem \eqref{eq:OCP} is an admissible and optimal trajectory defined over the interval $t \in [t_0, t_f]$, and is denoted by $\bm{u}^*(t)$ and $\x^*(t)$.
+% --- Original text end ---
+
+\begin{frame}{From Infinite to Finite}
+\begin{itemize}
+\item Optimal control is infinite-dimensional because inputs are functions of time.
+\item Practical solvers discretize or otherwise reduce the problem to finitely many variables.
+\item We classify numerical methods as direct or indirect depending on when the discretization happens.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Once the optimal control problem \eqref{eq:OCP} has been formulated, the next step is to find a solution. However, this can be challenging since \eqref{eq:OCP} is an infinite-dimensional optimization problem (because the optimization is over an infinite-dimensional function and not a finite set of parameters). Unless an analytical solution to the problem can be found, this problem must be transformed into a finite dimensional problem so that it can be solved numerically on a computer.
+% In general, algorithms for numerically solving optimal control problems can be classified as either \textit{direct} or \textit{indirect} methods. 
+% --- Original text end ---
+
+\begin{frame}{Direct Methods}
+\begin{itemize}
+\item Discretize states and inputs at selected time points, producing a nonlinear program (NLP).
+\item Off-the-shelf NLP solvers (IPOPT, SNOPT, etc.) then optimize the decision variables.
+\item Tools like DIDO, PROPT, and GPOPS wrap this workflow for optimal control users.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \paragraph{Direct Methods:}
+% Direct methods follow a ``first discretize, then optimize" approach. In the first step the problem \eqref{eq:OCP} is converted into a finite-dimensional problem by discretizing the functions $\x(t)$ and $\bm{u}(t)$. For example this might be accomplished by defining the new optimization variables to be $\x(t_i)$ and $\bm{u}(t_i)$ for a finite number of time points $t_i$. This finite-dimensional optimization problem is generally referred to as a \textit{nonlinear program} (NLP), which can be solved with existing numerical algorithms\footnote{Several solvers for solving general NLPs include IPOPT and SNOPT, and software packages for solving optimal control problems using the direct method include DIDO, PROPT, and GPOPS.}.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Nonlinear Programs}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Concept Recap}
+\begin{itemize}
+\item A nonlinear program minimizes $f(\mathbf{z})$ subject to nonlinear equality/inequality constraints on $\mathbf{z}$.
+\item KKT conditions generalize Lagrange multipliers to handle both constraint types.
+\item Example: minimize $x^2 + y^2$ such that $x + y = 1$ and $x \geq 0$; the solution is $x=1, y=0$ because it satisfies the constraint set and yields the smallest objective.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% Direct methods follow a ``first discretize, then optimize" approach. ... This finite-dimensional optimization problem is generally referred to as a \textit{nonlinear program} (NLP), which can be solved with existing numerical algorithms.
+% --- Original text end ---
+
+\begin{frame}{Indirect Methods}
+\begin{itemize}
+\item Derive necessary conditions of optimality to form a two-point boundary-value problem.
+\item Shoot or collocate on those boundary conditions to recover the optimal trajectory.
+\item These approaches require problem-specific derivations and quickly get unwieldy with constraints.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \paragraph{Indirect Methods:}
+% Indirect methods follow a ``first optimize, then discretize" approach. These methods first derive the necessary conditions of optimality, which are expressed as a two-point boundary value problem. This two-point boundary value problem is essentially a set of ODEs with boundary conditions at two points\footnote{This is in contrast to initial value problems, which have a single boundary condition and can easily be numerical integrated to find a solution.} that must be numerically solved.
+% --- Original text end ---
+
+\begin{frame}{Why Direct Methods Dominate}
+\begin{itemize}
+\item Indirect approaches are difficult to generalize across problems and constraints.
+\item Direct transcription with flexible solvers scales better to robotics tasks.
+\item As a result, most practical planners discretize first and rely on NLP toolchains.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Indirect methods are less commonly used in robotics because the derivation of the necessary conditions of optimality must be done on a case by case basis, and can become quite challenging. They become particularly difficult to use when constraints are imposed in the problem. In contrast, direct methods offer much more flexibility and have been quite successful in practice.
+% --- Original text end ---
+
+\begin{frame}{Why Differential Flatness Helps}
+\begin{itemize}
+\item Optimal control can be expensive; sometimes "good" trajectories are enough.
+\item Differentially flat systems let us design trajectories by specifying a handful of outputs.
+\item Common robots (cars, quadrotors) fall into this category, enabling efficient planning.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Solving optimal control problems to compute optimal trajectories and optimal control inputs for a system can sometimes be computationally challenging. In fact, sometimes it is more desirable to have a computationally efficient way of generating ``good'' trajectories, rather than a challenging way of generating ``optimal'' ones.
+% 
+% For a special class of models, which are referred to as \textit{differentially flat}, computing ``good'' trajectories without having to formulate optimal control problems is quite easy. There are several models that are common in robotics that are differentially flat, including a simple car model and quadrotor models.
+% --- Original text end ---
+
+\begin{frame}{Example: Simple Car Model}
+\begin{itemize}
+\item State: rear-axle position $(x,y)$ and heading $\theta$.
+\item Inputs: forward speed $v$ and steering angle $\phi$ with wheelbase $L$.
+\item We can infer the full trajectory from a planar path.
+\end{itemize}
+\pause
+\[
+\begin{aligned}
+\dot{x} &= v\cos\theta,& \dot{y} &= v\sin\theta,& \dot{\theta} &= \tfrac{v}{L}\tan\phi
+\end{aligned}
+\]
+\pause
+\begin{center}
+    \includegraphics[width=0.45\linewidth]{../tex/figs/ch02_figs/car.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% \begin{example}[Simple Car Model] \label{ex:carflatness}
+% ... (description of car model and Figure \ref{fig:car-model}) ...
+% Consider the car model corresponding to Figure \ref{fig:car-model}:
+% \begin{equation} \label{eq:car-dynamics}
+% \begin{split}
+%     \dot{x} &= v\cos\theta,\\
+%     \dot{y} &= v\sin\theta,\\
+%     \dot{\theta} &= \frac{v}{L}\tan\phi, 
+% \end{split}
+% \end{equation}
+% where $(x, y)$ is the position and $\theta$ is the orientation of the vehicle, $v$ is the speed, $\phi$ is the steering angle, and $L$ is the length of the wheelbase. The state $\x$ is therefore defined as $\x = [x, \: y, \: \theta]^\top $ and the control is defined as $\bm{u} = [v, \:\phi]^\top $.
+% --- Original text end ---
+
+\begin{frame}{Inferring State and Inputs}
+\begin{itemize}
+\item Pick any smooth $x(t), y(t)$ path; differentiate to recover $\theta(t)$.
+\item Use $v = \dot{x}/\cos\theta$ (or $\dot{y}/\sin\theta$) to find the speed profile.
+\item Obtain the steering input from $\phi = \tan^{-1}(L\dot{\theta}/v)$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Suppose the motion planning task is to find a control sequence $\bm{u}(t)$ that will take the car from an initial state $\x_0$ to a final desired state $\x_{f}$. ... In fact, for this model it is sufficient to specify a differentiable trajectory for $x(t)$ and $y(t)$, and the remaining state variables and control inputs can be \textit{analytically} determined!
+% ...
+% \begin{equation*}
+% \theta = \tan^{-1}(\dot{y}/\dot{x}).
+% \end{equation*}
+% ...
+% \begin{equation*}
+% v = \dot{x}/\cos\theta, \quad \text{or}  \quad v = \dot{y}/\sin\theta.
+% \end{equation*}
+% ...
+% \begin{equation*}
+% \phi = \tan ^{-1}(\frac{L\dot{\theta}}{v}).
+% \end{equation*}
+% --- Original text end ---
+
+\begin{frame}{Definition: Differential Flatness}
+\begin{itemize}
+\item A system is differentially flat if a flat output $\mathbf{z}$ and its derivatives reconstruct $\x$ and $\bm{u}$.
+\item Mapping $\mathbf{z} \mapsto (\x,\bm{u})$ uses smooth functions $\beta$ and $\gamma$.
+\item Flat outputs match the number of control inputs.
+\end{itemize}
+\pause
+\[
+\dot{\x} = a(\x,\bm{u}),\quad \x = \beta(\mathbf{z},\dot{\mathbf{z}},\dots),\ \bm{u} = \gamma(\mathbf{z},\dot{\mathbf{z}},\dots)
+\]
+\end{frame}
+% --- Original text start ---
+% \begin{definition}[Differential Flatness]
+% A non-linear system
+% \begin{equation} \label{eq:diffflatsys}
+% \dot{\x}(t) = a(\x(t),\bm{u}(t)),
+% \end{equation}
+% is differentially flat with flat output $\z$ if there exists a function $\alpha$ such that
+% \begin{equation}
+% \z = \alpha (\x,\bm{u},\dot{\bm{u}},\dots,\bm{u}^{(p)}),
+% \end{equation}
+% and such that the solutions to the system $\x(t)$ and $\bm{u}(t)$ can be written as functions of the flat output $\z$ and a finite number of its derivatives:
+% \begin{equation} \label{eq:ztoxu}
+% \begin{split}
+% \x &= \beta (\z,\dot{\z},\dots,\z^{(q)}) \\
+% \bm{u} &= \gamma (\z,\dot{\z},\dots,\z^{(q)}).
+% \end{split}
+% \end{equation}
+% \end{definition}
+% --- Original text end ---
+
+\begin{frame}{Planning with Flat Outputs}
+\begin{itemize}
+\item Translate boundary conditions on $\x$ into boundary conditions on the flat outputs via $\beta$.
+\item Choose any smooth $\mathbf{z}(t)$ satisfying those constraints.
+\item Map back through the inverse mappings to recover $\x(t)$ and $\bm{u}(t)$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Consider a nonlinear system model of the form \eqref{eq:diffflatsys} that is differentially flat with flat output $\z$ where the objective is to design a trajectory from $\x_0$ to $\x_f$ over a horizon of $T$ seconds. First, find the boundary conditions for the flat output $\z(0)$ and $\z(T)$ that satisfy the boundary conditions on $\x$ by noting that
+% \begin{equation} \label{eq:flatbc}
+% \begin{split}
+% \x_0 &= \beta (\z(0),\dot{\z}(0),\dots,\z^{(q)}(0)), \\
+% \x_f &= \beta (\z(T),\dot{\z}(T),\dots,\z^{(q)}(T)). \\
+% \end{split}
+% \end{equation}
+% Second, compute \textit{any} smooth trajectory for the flat outputs $\z(t)$ that satisfy these boundary conditions. Third, use \eqref{eq:ztoxu} to map the flat output trajectory $\z(t)$ to the state and control trajectories $\x(t)$ and $\bm{u}(t)$.
+% --- Original text end ---
+
+\begin{frame}{Parameterizing Flat Outputs}
+\begin{itemize}
+\item Express each flat output as a weighted sum of smooth basis functions.
+\item Polynomial bases make derivatives straightforward and keep the expression linear in coefficients.
+\item Choosing enough basis functions ensures we can meet boundary and smoothness conditions.
+\end{itemize}
+\pause
+\[
+z_j(t) = \sum_{i=1}^N \alpha_i^{[j]} \psi_i(t)
+\]
+\end{frame}
+% --- Original text start ---
+% Since the flat outputs can be specified as any smooth trajectory, a common choice is to parameterize them using $N$ smooth basis functions:
+% \begin{equation} \label{eq:flat}
+% z_j(t) = \sum_{i=1}^{N} \alpha_i^{[j]} \psi_i(t),
+% \end{equation}
+% where $z_j$ is the $j$-th element of $\z$, $\alpha_i^{[j]} \in \mathbb{R}$ are variables that parameterize the trajectory and $\psi_i(t)$ are the smooth basis functions. One potential choice is to use polynomial basis functions ... Another advantage of choosing this parameterization ...
+% --- Original text end ---
+
+\begin{frame}{Solving for Coefficients}
+\begin{itemize}
+\item Derivatives of $z_j(t)$ remain linear in the coefficients.
+\item Boundary conditions yield a linear system whose solution fixes all $\alpha_i^{[j]}$.
+\item Additional equality constraints fit naturally by appending rows.
+\end{itemize}
+\pause
+\[
+\Psi \boldsymbol{\alpha}^{[j]} = b^{[j]}
+\]
+\end{frame}
+% --- Original text start ---
+% Consider differentiating \eqref{eq:flat} $q$ times:
+% ...
+% Now, from the initial and final conditions ... the coefficients $\alpha_i^{[j]}$ can be computed by solving the following linear system (assuming the matrix is full rank):
+% \begin{equation} \label{eq:diffflatlinear}
+% \begin{bmatrix}
+%     \psi_1(0) & \psi_2(0) & \dots & \psi_N(0) \\
+%     \dot{\psi_1}(0) & \dot{\psi_2}(0) & \dots & \dot{\psi_N}(0) \\
+%     \vdots & \vdots & & \vdots \\
+%     \psi_1^{(q)}(0) & \psi_2^{(q)}(0) & \dots & \psi_N^{(q)}(0) \\
+%     \psi_1(T) & \psi_2(T) & \dots & \psi_N(T) \\
+%     \dot{\psi_1}(T) & \dot{\psi_2}(T) & \dots & \dot{\psi_N}(T) \\
+%     \vdots & \vdots & & \vdots \\
+%     \psi_1^{(q)}(T) & \psi_2^{(q)}(T) & \dots & \psi_N^{(q)}(T) \\
+% \end{bmatrix}
+% \begin{bmatrix}
+%     \alpha_1^{[j]} \\
+%     \alpha_2^{[j]} \\
+%     \vdots \\
+%     \alpha_N^{[j]} \\
+% \end{bmatrix} =
+% \begin{bmatrix}
+%     z_j(0) \\
+%     \dot{z}_j(0) \\
+%     \vdots \\
+%     z^{(q)}_j(0) \\
+%     z_j(T) \\
+%     \dot{z}_j(T) \\
+%     \vdots \\
+%     z_j^{(q)}(T)
+% \end{bmatrix}.
+% \end{equation}
+% Once the values for $\alpha_i^{[j]}$ are known, the entire trajectory $z_j(t)$ is therefore known!
+% --- Original text end ---
+
+\begin{frame}{Handling Additional Constraints}
+\begin{itemize}
+\item Equality constraints on the flat outputs simply add rows to the linear system.
+\item If the system becomes overdetermined, include more basis functions to regain feasibility.
+\item Bound constraints require additional techniques such as time scaling.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Note that this approach is not strictly limited to specifying the initial and final conditions. It is also possible to specify other constraints on $z_j$ and its derivatives as long as they are \textit{equality} constraints. ... However, if too many constraints are added the linear system \eqref{eq:diffflatlinear} may not have a solution (i.e. the system is over-determined). Assuming the constraints are not conflicting, this problem can typically be fixed by adding additional basis functions.
+% --- Original text end ---
+
+\begin{frame}{Planning in Flat Space}
+\begin{itemize}
+\item Flat outputs describe every feasible motion, so design in that space simplifies planning.
+\item Mapping back through $\beta$ and $\gamma$ automatically enforces dynamics.
+\item This approach bypasses large optimal control solves for many practical tasks.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% To summarize, for differentially flat nonlinear systems, the motion planning and control problem can be greatly simplified by planning in the flat output space. This is possible because of nonlinear functions that allow the flat output trajectory to be directly mapped to state and control trajectories that satisfy the system dynamics.
+% --- Original text end ---
+
+\begin{frame}{Bound Constraints and Time Scaling}
+\begin{itemize}
+\item Bound constraints (e.g., $|v| \leq v_{\max}$) are inequality conditions on states or inputs.
+\item Strategy: design a geometric path first, then adjust the timing so bounds hold.
+\item Slowing down along the same path typically reduces speed or acceleration peaks.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% As previously shown, some constraints ... However, applying \textit{bound} constraints can be slightly more challenging since they are expressed as inequality constraints rather than equality constraints. Nonetheless, bound constraints are common in robotics ...
+% One technique for handling these types of constraints is to use \textit{time scaling}. The general approach ...
+% --- Original text end ---
+
+\begin{frame}{Geometric Paths}
+\begin{itemize}
+\item A geometric path $\x(s)$ ignores time and records only spatial progression.
+\item The timing law $s(t)$ maps elapsed time to progress along that path.
+\item Changing $s(t)$ changes trajectory timing without altering the underlying path.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% A geometric path is a sequence of states for the robot that is not associated with time. Given a candidate trajectory $\x(t)$, the geometric path can be defined by alternatively expressing the trajectory as $\x(t) = \x(s(t))$ ...
+% --- Original text end ---
+
+\begin{frame}{Time-Scaling Intuition}
+\begin{itemize}
+\item Even without dynamics, we can reparameterize a path via a cubic $s(t)$ to match desired timing.
+\item Longer horizons reduce peak velocities; shorter ones increase them.
+\item This intuition carries over once we respect system dynamics.
+\end{itemize}
+\pause
+\[
+\dot{x}_{\max} = \tfrac{3}{2T}(x_f - x_0)
+\]
+\end{frame}
+% --- Original text start ---
+% To motivate why time scaling is important we can consider a simplified problem ... parameterized as $x(s) = x_0 + s(x_f - x_0)$ ...
+% $s(t) = \frac{3}{T^2}t^2 - \frac{2}{T^3}t^3$ ...
+% \begin{equation*}
+%     x(t) = x_0 + (\frac{3}{T^2}t^2 - \frac{2}{T^3}t^3)(x_f - x_0).
+% \end{equation*}
+% ...
+% \begin{equation*}
+%     \dot{x}_{\text{max}} = \frac{3}{2T}(x_f - x_0).
+% \end{equation*}
+% --- Original text end ---
+
+\begin{frame}{Chain Rule for Dynamics}
+\begin{itemize}
+\item Reparameterizing gives $\dot{\x}(t) = \frac{d\x}{ds} \dot{s}(t)$.
+\item New timing laws $\tilde{s}(t)$ must still satisfy the dynamics with some control $\tilde{\bm{u}}$.
+\item For certain systems, picking the path parameter intelligently makes this feasible.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Some additional considerations need to be made when time-scaling trajectories that must also satisfy differential models.
+% First, note that the time derivative of the state can be rewritten by using the chain rule:
+% \begin{equation*}
+% \dot{\x}(t) = \frac{d\x(t)}{dt} = \frac{d\x(s)}{ds} \frac{ds(t)}{dt}.
+% \end{equation*}
+% ...
+% \begin{equation} \label{eq:stildedynamics}
+% \frac{d\x(\tilde{s})}{d\tilde{s}} \dot{\tilde{s}} = a(\x(\tilde{s}), \tilde{\bm{u}}(\tilde{s})).
+% \end{equation}
+% --- Original text end ---
+
+\begin{frame}{Example: Car Time Scaling}
+\begin{itemize}
+\item Choose arc length as the path parameter ($\dot{s} = v$) for the simple car.
+\item Steering $\phi(\tilde{s})$ stays unchanged, so geometric path constraints hold.
+\item Speed $v(\tilde{s})$ becomes the degree of freedom used to satisfy bounds.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \begin{example}[Time Scaling for Simple Car Model]
+% ... With this choice of path parameter the geometric path function $\x_c(s)$ ...
+% \begin{equation*}
+% \begin{split}
+% \frac{dx_c(\tilde{s})}{d\tilde{s}}\dot{\tilde{s}} &= v(\tilde{s})\cos\theta_c(\tilde{s}),\\
+% ...
+% \end{split}
+% \end{equation*}
+% ...
+% Since the choice of the path parameter yields $\dot{\tilde{s}} = v(\tilde{s})$, these equations can be further simplified ...
+% ... Therefore, since $\dot{\tilde{s}} = v(\tilde{s})$ this means that the speed input can be chosen arbitrarily while maintaining the same geometric path! ...
+% \end{example}
+% --- Original text end ---
+
+\begin{frame}{Kinematic Models and Geometry}
+\begin{itemize}
+\item Pfaffian constraints lead to the kinematic form $\dot{\x} = G(\x)\bm{u}$.
+\item Reparameterize with $s(t)$ to obtain geometric controls $\bm{u}_g(s)$ satisfying $\frac{d\x}{ds} = G(\x)\bm{u}_g$.
+\item Actual controls follow from $\bm{u}(t) = \bm{u}_g(s(t))\dot{s}(t)$.
+\end{itemize}
+\pause
+\[
+\dot{\x} = G(\x)\bm{u},\quad \frac{d\x}{ds} = G(\x)\bm{u}_g(s)
+\]
+\end{frame}
+% --- Original text start ---
+% \paragraph{Time Scaling with Kinematic Models:} ... In this case the kinematic model can be written in the form:
+% \begin{equation} \label{eq:kinmodel}
+%     \dot{\x} = G(\x) \bu,
+% \end{equation}
+% ...
+% \begin{equation} \label{eq:kinematicgeometricmodel}
+%     \frac{d\x(s)}{ds} = G(\x)\bu_g(s).
+% \end{equation}
+% ...
+% By making a substitution that $\bu(t) =  \bu_g(s)\dot{s}$ ...
+% --- Original text end ---
+
+\begin{frame}{Rescaling Procedure}
+\begin{itemize}
+\item Compute $s(t)$ and re-express the original control as $\bm{u}(s)$.
+\item Derive geometric controls $\bm{u}_g(s) = \bm{u}(s)/\dot{s}(t)$.
+\item Pick a new timing law $\tilde{s}(t)$ and recover $\tilde{\bm{u}}(t) = \bm{u}_g(\tilde{s}(t))\dot{\tilde{s}}(t)$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% The following steps can then be used to define a new control input $\tilde{\bu}(t)$ that will make the kinematic model follow the same geometric path but with a different time scale:
+% \begin{enumerate}
+% \item Determine $s(t)$ ...
+% \item Compute the geometric controls $\bu_g(s) = \bu(s(t))/\dot{s}(t)$ ...
+% \item Define a new timing law $\tilde{s}(t)$ ...
+% \item Compute the new control $\tilde{\bu}(t) = \bu_g(\tilde{s}(t)) \dot{\tilde{s}}(t)$ ...
+% \end{enumerate}
+% --- Original text end ---
+
+\begin{frame}{Example: Unicycle Time Scaling}
+\begin{itemize}
+\item For the unicycle, using arc length makes the geometric speed $v_g = 1$.
+\item The geometric heading rate becomes $\omega_g = \omega(s)/v(s)$.
+\item Specify any new speed profile $\tilde{v}(s)$, then set $\tilde{\omega}(s) = \omega_g(s)\tilde{v}(s)$ and reparameterize in time.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \begin{example}[Time Scaling for Unicycle Model] \label{ex:timescaleuni}
+% ...
+% With this choice, the geometric controls are given by:
+% \begin{equation*}
+% \begin{split}
+% v_g(s) &= \frac{v(s)}{\dot{s}(t)} = 1, \\
+% \omega_g(s) &= \frac{\omega(s)}{\dot{s}(t)} = \frac{\omega(s)}{v(s)},
+% \end{split}
+% \end{equation*}
+% ...
+% \tilde{\omega}(\tilde{s}) = \omega_g(\tilde{s}) \dot{\tilde{s}}(t) = \frac{\omega(\tilde{s})}{v(\tilde{s})} \tilde{v}(\tilde{s}).
+% ...
+% \end{example}
+% --- Original text end ---
+
+\begin{frame}{Exercise}
+\begin{itemize}
+\item Practice differential flatness and time scaling on the extended unicycle model.
+\item Download HW1 Problem 1 from the public repository and implement the trajectory generator.
+\item Use the tooling to enforce control bounds while maintaining smooth motion.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% \subsection{Exercises}
+% \subsubsection{Trajectory Generation via Differential Flatness}
+% Complete \textit{Problem 1:  Trajectory Generation via Differential Flatness} located in the online repository:
+% 
+% \vspace{\baselineskip}
+% 
+% \url{https://github.com/PrinciplesofRobotAutonomy/AA274A_HW1},
+% 
+% \vspace{\baselineskip}
+% 
+% where you will use an extended unicycle model to practice generating dynamically feasible trajectories by levering the system's differential flatness property. You will also have the chance to use time scaling techniques to design trajectories that satisfy control constraints.
+% --- Original text end ---
+
+\end{document}
