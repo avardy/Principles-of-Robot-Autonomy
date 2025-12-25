@@ -3,15 +3,15 @@
 This repository contains the LaTeX source for the "Principles of Robot Autonomy" course notes as well as curated Beamer slide decks for each chapter.
 
 ## Repository Layout
-- `tex/source/`: canonical chapter content. Edit these files to update prose, equations, or figures.
-- `tex/`: TeX wrappers, combined book build (`combined.tex`), bibliography, and figures (`tex/figs/chXX_figs`).
+- `book/source/`: canonical chapter content. Edit these files to update prose, equations, or figures.
+- `book/`: TeX wrappers, combined book build (`combined.tex`), bibliography, and figures (`book/figs/chXX_figs`).
 - `chapters/`: generated chapter PDFs (do not edit manually).
-- `slides/`: Curated Beamer decks (e.g., `ch01.tex`), `common_preamble.tex`, and any reusable templates/guides.
+- `slides/`: curated Beamer decks (e.g., `ch01.tex`), `common_preamble.tex`, and any reusable templates/guides.
 - `ORIGINAL_README.md`: short note from the upstream release, retained for reference.
 
 ## Slide Conversion Workflow
 1. **Seed a deck**
-   - Start from `slides/templates/base.tex` (if available) or copy an existing curated deck such as `ch01.tex` and update the metadata/title slide.
+   - Copy an existing curated deck such as `ch01.tex` and update the metadata/title slide.
    - All decks should `\input{common_preamble.tex}` to pick up shared theme/`
      usepackage` settings.
 2. **Curate slides manually**
