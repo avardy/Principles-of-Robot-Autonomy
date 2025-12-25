@@ -32,6 +32,9 @@ EXTRA_TARGETS :=
 endif
 
 BUILD_TARGETS := $(BUILD_SOURCES:%.tex=%$(OUTPUT_SUFFIX).pdf) $(EXTRA_TARGETS)
+COMMON_DEP := common_preamble.tex
+
+$(BUILD_TARGETS): $(COMMON_DEP)
 
 .PHONY: all clean clean-all list help
 
