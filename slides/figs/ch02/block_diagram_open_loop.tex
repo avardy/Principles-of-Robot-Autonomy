@@ -1,0 +1,13 @@
+\documentclass[tikz]{standalone}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\begin{document}
+\begin{tikzpicture}[>=LaTeX,block/.style={draw,minimum width=2.4cm,minimum height=1.2cm,rounded corners=2pt,thick},node distance=1.6cm]
+  \node (ref) {Desired Temp};
+  \node[block,right=of ref] (ctrl) {Timer};
+  \node[block,right=2cm of ctrl] (plant) {Heater \& Room};
+  \node[right=1.8cm of plant] (out) {Room Temp};
+  \draw[->,thick] (ref) -- node[midway,above]{schedule} (ctrl);
+  \draw[->,thick] (ctrl) -- node[midway,above]{on/off} (plant);
+  \draw[->,thick] (plant) -- (out);
+\end{tikzpicture}
+\end{document}

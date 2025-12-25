@@ -33,6 +33,53 @@
 % The ecosystem of techniques for robot control is vast, and control laws can generally be categorized in several ways. One of the most fundamental classifications for a control law is if it is \textit{open-loop} or \textit{closed-loop}. Open-loop control laws do not rely on observations to influence the choice of control input, while closed-loop control laws do. As a practical example, suppose you are standing in a room and wanted to walk to the other side and sit in a chair. For open-loop control you might look at where the chair is relative to your current position, think about how to walk there, and then \textit{with your eyes closed} walk to the chair and sit. Alternatively, for closed-loop control you might keep \textit{your eyes open} the whole time.
 % --- Original text end ---
 
+\begin{frame}{Reminder: Block Diagrams}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Concept Recap}
+\begin{itemize}
+\item A block diagram abstracts components as blocks with arrows showing signal flow; it emphasizes information movement, not implementation details.
+\item Inputs enter on the left, outputs leave on the right, and summing junctions depict algebraic combinations (e.g., an error signal).
+\item Example: drive-by-wire stack where a reference speed feeds a controller block whose command flows into the plant (vehicle dynamics).
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% No direct block-diagram discussion in the source; this recap supports the new illustration slides.
+% --- Original text end ---
+
+\begin{frame}{Open-Loop Block Diagram}
+\begin{itemize}
+\item Consider a heating system controlled by a simple timer.
+\item The timer sends an on/off schedule to the heater regardless of the actual room temperature.
+\item If a window is left open (disturbance), the room will get too cold because the system cannot adapt.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.75\linewidth]{figs/ch02/block_diagram_open_loop.pdf}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Supplementary visualization: no direct counterpart in the chapter text, added for clarity.
+% --- Original text end ---
+
+\begin{frame}{Closed-Loop Block Diagram}
+\begin{itemize}
+\item Now consider a thermostat that measures the room temperature.
+\item The controller compares the desired setpoint with the measured temperature to compute an error.
+\item If the room is too cold, the heater turns on until the error is zero, rejecting disturbances like an open window.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.75\linewidth]{figs/ch02/block_diagram_closed_loop.pdf}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% Supplementary visualization: no direct counterpart in the chapter text, added for clarity.
+% --- Original text end ---
+
 \begin{frame}{Why Study Open Loop}
 \begin{itemize}
 \item Open-loop execution can be brittle, yet it delivers globally optimal plans when paired with trajectory optimization.
