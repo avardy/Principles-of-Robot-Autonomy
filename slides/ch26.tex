@@ -12,7 +12,9 @@
 
 \begin{document}
 
-\frame{\titlepage}
+\begin{frame}[plain]
+\titlepage
+\end{frame}
 
 \begin{frame}{Why Manipulation Is Hard}
 \begin{itemize}
@@ -43,7 +45,7 @@
 \item Practical analyses lean on point-on-plane abstractions for most surfaces.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.75\linewidth]{../tex/figs/ch26_figs/contacts.png}
+    \includegraphics[width=0.75\linewidth]{../book/figs/ch26_figs/contacts.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -57,7 +59,7 @@
 \item Soft-finger adds torsional moment $\tau_{\text{normal}}$ bounded by $|\tau_{\text{normal}}| \le \gamma f_z$.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.55\linewidth]{../tex/figs/ch26_figs/frictioncone.png}
+    \includegraphics[width=0.55\linewidth]{../book/figs/ch26_figs/frictioncone.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -71,7 +73,7 @@
 \item Enables linear grasp maps and convex optimization.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.45\linewidth]{../tex/figs/ch26_figs/linearfrictioncone.png}
+    \includegraphics[width=0.45\linewidth]{../book/figs/ch26_figs/linearfrictioncone.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -96,7 +98,7 @@
 \item Larger $\mathcal{W}$ means the grasp can counter more external wrenches.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.72\linewidth]{../tex/figs/ch26_figs/2Dexample_a.png}
+    \includegraphics[width=0.72\linewidth]{../book/figs/ch26_figs/2Dexample_a.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -110,7 +112,7 @@
 \item Real hardware seeks force closure plus safety margin for bounded forces.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.65\linewidth]{../tex/figs/ch26_figs/closure.png}
+    \includegraphics[width=0.65\linewidth]{../book/figs/ch26_figs/closure.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -135,7 +137,7 @@
 \item 3D wrenches: require at least 7 directions (3 contacts with friction or 7 frictionless).
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.72\linewidth]{../tex/figs/ch26_figs/2Dexample_b.png}
+    \includegraphics[width=0.72\linewidth]{../book/figs/ch26_figs/2Dexample_b.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -149,7 +151,7 @@
 \item Provides a tractable basis for grasp quality metrics.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.58\linewidth]{../tex/figs/ch26_figs/2Dexample_e.png}
+    \includegraphics[width=0.58\linewidth]{../book/figs/ch26_figs/2Dexample_e.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -163,7 +165,7 @@
 \item Average-case metric: volume of $\tilde{\mathcal{W}}$ distinguishes grasps with same worst-case bound.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.55\linewidth]{../tex/figs/ch26_figs/2Dexample_c.png}
+    \includegraphics[width=0.55\linewidth]{../book/figs/ch26_figs/2Dexample_c.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -199,7 +201,7 @@
 \item Generalizes to novel household objects despite purely synthetic training data.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.38\linewidth]{../tex/figs/ch26_figs/saxenacup.png}
+    \includegraphics[width=0.38\linewidth]{../book/figs/ch26_figs/saxenacup.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -213,7 +215,7 @@
 \item Use bandit selection online and update with outcomes for continual improvement.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.45\linewidth]{../tex/figs/ch26_figs/dexnet.png}
+    \includegraphics[width=0.45\linewidth]{../book/figs/ch26_figs/dexnet.png}
 \end{center}
 \end{frame}
 % --- Original text start ---

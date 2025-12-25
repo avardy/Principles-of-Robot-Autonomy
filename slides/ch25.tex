@@ -6,7 +6,9 @@
 
 \begin{document}
 
-\frame{\titlepage}
+\begin{frame}[plain]
+\titlepage
+\end{frame}
 
 \begin{frame}{Why Formal Guarantees?}
 \begin{itemize}
@@ -48,7 +50,7 @@
 \item Rich behaviors emerge by composing operators to encode timing, ordering, and persistence constraints.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.55\linewidth]{../tex/figs/ch25_figs/next.png}
+    \includegraphics[width=0.55\linewidth]{../book/figs/ch25_figs/next.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -87,7 +89,7 @@
 \item Success yields provable guarantees; failure surfaces counterexamples to refine design/spec.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.6\linewidth]{../tex/figs/ch25_figs/verification.png}
+    \includegraphics[width=0.6\linewidth]{../book/figs/ch25_figs/verification.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -101,7 +103,7 @@
 \item Goal: guarantee desired behavior under \emph{all} admissible input sequences.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.55\linewidth]{../tex/figs/ch25_figs/model.png}
+    \includegraphics[width=0.55\linewidth]{../book/figs/ch25_figs/model.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -115,7 +117,7 @@
 \item Requires specification realizability; otherwise no controller can enforce the behavior.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.58\linewidth]{../tex/figs/ch25_figs/synthesis.png}
+    \includegraphics[width=0.58\linewidth]{../book/figs/ch25_figs/synthesis.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -140,7 +142,7 @@
 \item Construct game by translating \(\phi\) into a B"{u}chi automaton, then solving for a winning strategy.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.5\linewidth]{../tex/figs/ch25_figs/game.png}
+    \includegraphics[width=0.5\linewidth]{../book/figs/ch25_figs/game.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
@@ -154,7 +156,7 @@
 \item A simple winning strategy is to grant every cycle, avoiding contradiction entirely.
 \end{itemize}
 \begin{center}
-    \includegraphics[width=0.45\linewidth]{../tex/figs/ch25_figs/game_solution.png}
+    \includegraphics[width=0.45\linewidth]{../book/figs/ch25_figs/game_solution.png}
 \end{center}
 \end{frame}
 % --- Original text start ---
