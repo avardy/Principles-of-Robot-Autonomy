@@ -1,12 +1,18 @@
 % Shared Beamer configuration for Principles of Robot Autonomy decks
 \usetheme{Boadilla}
 %\usecolortheme{seagull}
+
+% Use Palatino to match the book's Tufte style
+\usepackage{mathpazo}
+\usefonttheme{serif}
+
 \usepackage{amsmath}
 \usepackage{amssymb}
 \usepackage{bm}
 \usepackage{graphicx}
 \usepackage{enumitem}
 \usepackage{xparse}
+\usepackage{array}
 
 % Increase vertical spacing between list items for readability.
 \setlist[itemize]{itemsep=0.75em}
@@ -15,6 +21,7 @@
 % Define bold symbol macros if not already defined
 \providecommand{\x}{\boldsymbol{x}}
 \providecommand{\z}{\boldsymbol{z}}
+\providecommand{\q}{\boldsymbol{q}}
 \providecommand{\bxi}{\boldsymbol{\xi}}
 \providecommand{\bu}{\boldsymbol{u}}
 \providecommand{\bmu}{\boldsymbol{\mu}}
@@ -39,7 +46,6 @@
 
 % Add other shared packages or theme settings above this line as needed.
 
-\subtitle{COMP 4766}
-\author[Andrew Vardy]{Andrew Vardy\\
-Adapted from ``Principles of Robot Autonomy'' by Joseph Lorenzetti and Marco Pavone}
+\author[COMP 4766]{Adapted from ``Principles of Robot Autonomy'' by D. Gammelli, J. Lorenzetti,
+K. Luo, G. Zardini, and M. Pavone}
 \date{\today}

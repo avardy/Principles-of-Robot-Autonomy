@@ -1,0 +1,154 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Mobile Robot Kinematics: Part 1}
+
+\begin{document}
+
+\begin{frame}[plain]
+\titlepage
+\end{frame}
+
+\begin{frame}{Source Material}
+    Covering the following sections from ``Principles of Robot Autonomy'':
+    \begin{itemize}
+    \item 1.3
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}{Why Wheeled Models}
+\begin{itemize}
+\item Wheeled robots are common thanks to mobility and mechanical simplicity.
+\item Standard templates (unicycle, differential drive, etc.) cover many platforms.
+\item Studying canonical cases makes it easier to adapt kinematic reasoning to new robots.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Robots come in all shapes, sizes, and configurations ... wheeled robots are perhaps the most widely used because of their high mobility and simple design.
+% --- Original text end ---
+
+\begin{frame}{Unicycle Model}
+\begin{itemize}
+\item Approximates the robot as a single wheel with state $[x,y,\theta]^\top$.
+\item Shares the same no-slip constraint as the earlier wheel example.
+\item Inputs $(v,\omega)$ command forward speed and body rotation.
+\end{itemize}
+\pause
+\[
+\begin{bmatrix}
+\dot{x}\\\dot{y}\\\dot{\theta}
+\end{bmatrix} =
+\begin{bmatrix}
+\cos\theta & 0\\
+\sin\theta & 0\\
+0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+ v\\ \omega
+\end{bmatrix}
+\]
+\pause
+\begin{center}
+    \includegraphics[width=0.4\linewidth]{../book/figs/ch01_figs/unicycle.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% The unicycle model ... assumes the robot can be approximated by a single wheel and uses inputs $v$ and $\omega$.
+% --- Original text end ---
+
+\begin{frame}{Differential Drive Geometry}
+\begin{itemize}
+\item Two rear wheels share an axle of width $L$; a passive front wheel carries no constraints.
+\item Positions of the left and right wheels offset the body frame by $\pm \tfrac{L}{2}$.
+\item Both wheels obey the same no-slip condition because they are rigidly linked.
+\end{itemize}
+\pause
+\begin{center}
+    \includegraphics[width=0.45\linewidth]{../book/figs/ch01_figs/diff_drive.png}
+\end{center}
+\end{frame}
+% --- Original text start ---
+% The differential drive model ... two wheels fixed on a rear shared axle with width $L$ (Figure \ref{fig:dd}).
+% --- Original text end ---
+
+\begin{frame}{Differential Drive Constraints}
+\begin{itemize}
+\item Wheel positions: $p_l = [x-\tfrac{L}{2}\sin\theta,\, y+\tfrac{L}{2}\cos\theta]$ and $p_r = [x+\tfrac{L}{2}\sin\theta,\, y-\tfrac{L}{2}\cos\theta]$.
+\item Differentiating gives $\dot{p}_l$ and $\dot{p}_r$; both lead to $\dot{x}\sin\theta - \dot{y}\cos\theta = 0$.
+\item The redundant constraints confirm that a single nonholonomic condition governs the chassis.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% $p_l = [x - \frac{L}{2}\sin \theta, \: y + \frac{L}{2}\cos \theta]$, $p_r = [x + \frac{L}{2}\sin \theta, \: y - \frac{L}{2}\cos \theta]$ ... both yield $\dot{x}\sin \theta - \dot{y} \cos \theta = 0$.
+% --- Original text end ---
+
+\begin{frame}{Differential Drive Inputs}
+\begin{itemize}
+\item Use wheel rotation rates $(\omega_l,\omega_r)$ instead of $(v,\omega)$ for more realistic actuation.
+\item Speed satisfies $v = \tfrac{r}{2}(\omega_l + \omega_r)$, while rotation obeys $\omega = \tfrac{r}{L}(\omega_r - \omega_l)$.
+\item The resulting model maps wheel rates to body motion via
+\pause
+\[
+\begin{bmatrix}
+\dot{x}\\\dot{y}\\\dot{\theta}
+\end{bmatrix} =
+\begin{bmatrix}
+\tfrac{r}{2}\cos\theta & \tfrac{r}{2}\cos\theta\\
+\tfrac{r}{2}\sin\theta & \tfrac{r}{2}\sin\theta\\
+\tfrac{r}{L} & -\tfrac{r}{L}
+\end{bmatrix}
+\begin{bmatrix}
+\omega_r\\\omega_l
+\end{bmatrix}.
+\]
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Relationships $v = \frac{r}{2}(\omega_l + \omega_r)$ and $\omega = \frac{r}{L}(\omega_r - \omega_l)$ lead to the differential drive model \eqref{eq:dd}.
+% --- Original text end ---
+
+\begin{frame}{Why Add Dynamics}
+\begin{itemize}
+\item Purely kinematic models ignore actuator limits, slip, and inertia.
+\item Inputs like velocity or wheel rate may be hard to command without considering required forces.
+\item Some tasks therefore augment kinematics with lightweight dynamics.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Mobile robot kinematic models are approximations of the true system behavior ... the choice of inputs ignores other important dynamics of the robot.
+% --- Original text end ---
+
+\begin{frame}{Extending the Unicycle}
+\begin{itemize}
+\item Replace velocity inputs with accelerations by adding integrator states.
+\item Linear acceleration $a$ drives $\dot{v}$, and angular acceleration $\alpha$ drives $\dot{\omega}$.
+\item The extended model couples kinematics with simple dynamics:
+\pause
+\[
+\begin{bmatrix}
+\dot{x}\\\dot{y}\\\dot{v}\\\dot{\theta}\\\dot{\omega}
+\end{bmatrix} =
+\begin{bmatrix}
+ v\cos\theta\\ v\sin\theta\\ a\\ \omega\\ \alpha
+\end{bmatrix}.
+\]
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% One common extension to kinematic models ... replace velocity input $v$ with acceleration $a$ and add integrators, yielding \eqref{eq:extendeduni}.
+% --- Original text end ---
+
+\begin{frame}{Modeling Takeaways}
+\begin{itemize}
+\item Choose the simplest model that captures the geometry, actuation, and performance needs of the task.
+\item Add dynamics when necessary, but leverage kinematic structure to keep planning manageable.
+\item Revisit models as tasks evolve to ensure accuracy remains aligned with objectives.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% In summary, factors to consider when deciding whether a certain kinematic model is sufficient, or if additional kinematics/dynamics are needed, include the robot's configuration/geometry and the task at hand.
+% --- Original text end ---
+
+\end{document}

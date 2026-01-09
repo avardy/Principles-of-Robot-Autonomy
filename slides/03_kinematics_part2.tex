@@ -1,0 +1,274 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Mobile Robot Kinematics: Part 2}
+
+\begin{document}
+
+\begin{frame}[plain]
+\titlepage
+\end{frame}
+
+\begin{frame}{Source Material}
+    Covering the following sections from ``Principles of Robot Autonomy'':
+    \begin{itemize}
+    \item 1.2:
+    \begin{itemize}
+        \item 1.2.1 - 1.2.4 covered fully
+        \item 1.2.5 not covered
+    \end{itemize}
+    \end{itemize}
+\end{frame}
+
+
+
+\begin{frame}{Kinematics and Dynamics}
+    \begin{block}{Kinematics}
+    Kinematics is the study of the motion of physical
+systems, concerned with describing positions, velocities, and accelerations over time, without reference to the forces or torques that produce the motion.
+    \end{block}
+    \pause
+
+    \begin{block}{Dynamics}
+    Dynamics is the study of the motion of physical
+systems as determined by the forces and torques acting upon them. It seeks to
+relate a system’s motion to the underlying physical causes of that motion, such
+as gravity, friction, or applied inputs.
+    \end{block}
+    \pause
+
+    Both perspectives are necessary to accurately describe a robot's motion. However, we might choose to focus on only one to yield a simpler model.
+\end{frame}
+
+
+\begin{frame}
+    \textbf{In mobile robotics we often ignore dynamics: why?}
+    \begin{itemize}
+        \item Most mobile robots utilize a layered control architecture. These controllers handle the ``dirty work'' of dynamics (voltage, torque, friction) so that the higher-level system can simply treat the robot as a device that accepts a velocity.
+
+        \item Kinematic models are sufficient when physical forces are small: Many indoor robots move at speeds where centrifugal forces and inertia are small.
+        
+        \item Solving dynamics equations is typically much slower than kinematic equations. Dynamics equations often require more knowledge of parameters (e.g. mass, centre-of-mass, friction coefficients, ...).
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}{When Dynamics CANNOT be Ignored}
+    
+    \begin{table}
+    \begin{tabular}{|l|l|}
+    \hline
+    \rule[-1.2ex]{0pt}{4ex} \textbf{Kinematics-only if...} & \textbf{Incorporate Dynamics if...} \\ \hline
+    Slow/Moderate speed & High-speed maneuvers \\ \hline
+    Heavy-duty motors & Limited torque/underactuated \\ \hline
+    Wheeled/Flat ground & Legged or Aerial robots \\ \hline
+    Rigid environment & Soft or slippery terrain \\ \hline
+    \end{tabular}
+    \end{table}
+\end{frame}
+
+
+\begin{frame}{Generalized Coordinates}
+\begin{itemize}
+\item The \emph{generalized coordinates} of a robot is the set of variables that specify the position of every point on the robot.
+
+\item Denoted $\mathbf{q}(t) \in \mathbb{R}^{n_g}$.
+
+\item The generalized coordinates may be the same as the full system state $\mathbf{x}$ or they may represent a subset of the state (e.g. the state may include the generalized coordinates plus velocities).
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Example: A Wheel}
+\begin{center}
+    \includegraphics[width=0.6\linewidth]{../book/figs/ch01_figs/wheel_roll.png}
+\end{center}
+\begin{itemize}
+\item $(x,y)$ are the coordinates of the wheel's contact point with the ground.
+\item $\theta$ is the heading angle, relative to the $x-axis$.
+\item Generalized coordinates: $\q = [x, y, \theta]^\top$.
+\item Note that other choices of generalized coordinates are possible. For example, rather than the Cartesian coordinates $(x, y)$ we could use polar coordinates.
+\end{itemize}
+\pause
+\end{frame}
+
+
+\begin{frame}{Kinematic Constraints}
+    \begin{block}{Kinematic Constraints}
+    Kinematic constraints are a set of constraints imposed on the generalized coordinates, $\q$, and generalized velocities, $\dot{\q}$. We express kinematic constraints mathematically as:
+    $$a_i(\q, \dot{\q}) = 0, \qquad i = 1, ..., k < n_g,$$
+    where $k$ is the number of constraints and $n_g$ is the number of generalized coordinates.
+    \end{block}
+    \pause\vspace{0.3cm}
+    Intuitively: a kinematic constraint tells us one or both of the following:
+    \begin{itemize}
+        \item ``you can't be here''
+        \item ``you can't move in this direction''
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}{Pfaffian Constraints}
+\begin{itemize}
+\item Many robotic constraints are linear in $\dot{\q}$, yielding Pfaffian form 
+$$\mathbf{a}_i^\top(\q)\dot{\q} = 0, \qquad i = 1, ..., k < n_g.$$
+
+\item Example: we are modelling a robot that lives only on the $x-$axis, but we choose to represent its generalized coordinates as $\q = [x, y]^\top$.
+\item We could constrain its velocity to be along the $x-$axis through the following Pfaffian-form kinematic constraint:
+\item $$\begin{bmatrix} 0 & 1\end{bmatrix} \begin{bmatrix} \dot{x} \\ \dot{y} \end{bmatrix} = 0$$
+\item Meanwhile, this example is rather contrived. It would be better to just represent $\q$ as $x$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Kinematic constraints in robotics applications are often linear with respect to the generalized velocities... expressed as Pfaffian constraints $a_i^\top(\bxi)\dot{\bxi}=0$ or $A^\top(\bxi)\dot{\bxi}=\mathbf{0}$.
+% --- Original text end ---
+
+\begin{frame}{Example: Pendulum Constraint}
+\begin{center}
+    \includegraphics[width=0.2\linewidth]{../book/figs/ch01_figs/pendulum.png}
+\end{center}
+\pause
+\begin{itemize}
+\item Consider a pendulum: a mass at the end of a rod, swinging freely from the origin.
+\item Choose $\q = [x, y]^\top$ wherer $(x, y)$ are the coordinates of the mass.
+\item The rod is assumed to be rigid and of length $L$. This assumption yields a kinematic constraint.
+$$a_1(\q, \dot{q}) = x^2 + y^2 - L^2 = 0$$
+\end{itemize}
+\noindent
+\begin{minipage}{0.2\linewidth}
+    \centering
+    \includegraphics[width=\linewidth]{../book/figs/ch01_figs/pendulum.png}
+\end{minipage}%
+\hfill
+\begin{minipage}{0.6\linewidth}
+    \begin{itemize}
+    \item This is not in Pfaffian form, but we can obtain the constraint in that form by differentiating with respect to time.
+    $$2x\dot{x} + 2y\dot{y} = 0$$
+    \end{itemize}
+\end{minipage}
+\begin{itemize}
+\item Once again, it might be wiser to choose $\q = \theta$, which would make this constraint redundant.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{Example: No-Slip Wheel}
+\begin{itemize}
+\item A rolling wheel with coordinates $[x,y,\theta]^\top$ maintains zero lateral velocity.
+\item Using basis vectors aligned with the wheel gives the constraint $\dot{x}\sin\theta - \dot{y}\cos\theta = 0$.
+\item The Pfaffian form keeps the constraint linear in $\dot{x}$ and $\dot{y}$.
+\end{itemize}
+\pause
+\[
+\dot{x}\sin\theta - \dot{y}\cos\theta = 0
+\]
+\end{frame}
+% --- Original text start ---
+% The no-slip condition means the velocity component in the lateral direction is zero, leading to $\dot{x} \sin\theta - \dot{y} \cos \theta = 0$.
+% --- Original text end ---
+
+\begin{frame}{Holonomic Constraints}
+\begin{itemize}
+\item Holonomic constraints depend only on configuration: $h_i(\bxi)=0$.
+\item Differentiating $h_i$ reproduces the equivalent Pfaffian form.
+\item Holonomic systems contain only such integrable constraints.
+\end{itemize}
+\pause
+\[
+\frac{dh_i(\bxi)}{dt} = \frac{dh_i(\bxi)}{d\bxi}\dot{\bxi} = 0
+\]
+\end{frame}
+% --- Original text start ---
+% Holonomic constraints ... can be expressed as $h_i(\bxi)=0$ and differentiating yields the Pfaffian form.
+% --- Original text end ---
+
+\begin{frame}{Holonomic Access}
+\begin{itemize}
+\item Holonomic constraints restrict the reachable configurations to an $(n-k)$-dimensional subset.
+\item A pendulum mass remains on a circle of radius $L$, reducing the space to one dimension.
+\item The no-slip wheel constraint is not integrable, so it does not limit which $(x,y)$ can be reached.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Holonomic constraints restrict the accessible configurations ... pendulum example vs wheel example.
+% --- Original text end ---
+
+\begin{frame}{Nonholonomic Constraints}
+\begin{itemize}
+\item Nonholonomic constraints are Pfaffian but cannot be integrated to $h_i(\bxi)=0$.
+\item They restrict allowable motions between configurations rather than the configurations themselves.
+\item Any system subject to at least one such constraint is nonholonomic.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Constraints that can be described in Pfaffian form, but cannot be integrated to $h_i(\bxi) = 0$ are called nonholonomic.
+% --- Original text end ---
+
+\begin{frame}{Reminder: Null Space}
+\begingroup
+\setbeamercolor{block title}{bg=gray!20,fg=black}
+\setbeamercolor{block body}{bg=gray!10,fg=black}
+\begin{block}{Concept Recap}
+\begin{itemize}
+\item The null space of a matrix $A$ is the set of all vectors $\mathbf{x}$ such that $A\mathbf{x} = \mathbf{0}$, where $\mathbf{0}$ denotes the zero vector.
+\item Emphasizing the zero vector clarifies that every component of $A\mathbf{x}$ must vanish simultaneously.
+\item Example: For $A = \begin{bmatrix} 1 & 2\\ 3 & 6 \end{bmatrix}$, any scalar multiple of $\begin{bmatrix} 2\\ -1 \end{bmatrix}$ lies in the null space because $A\begin{bmatrix} 2\\ -1 \end{bmatrix} = \mathbf{0}$.
+\end{itemize}
+\end{block}
+\endgroup
+\end{frame}
+% --- Original text start ---
+% The restriction of instantaneous motion that is induced by a nonholonomic constraint can be interpreted by considering the Pfaffian form $a_i(\bxi)^\top \dot{\bxi} = 0$. It is clear that for any coordinate $\bxi$, this constraint limits the motion ($\dot{\bxi}$) to lie in the null space of $a_i(\bxi)^\top $.
+% --- Original text end ---
+
+\begin{frame}{Instantaneous Motion Limits}
+\begin{itemize}
+\item Nonholonomic constraints confine $\dot{\bxi}$ to the null space of $a_i^\top(\bxi)$.
+\item For the wheel, the null space is spanned by the rolling direction and pure spin.
+\item Any feasible velocity is a combination of those motions.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Consider again the wheel example ... The null space of $a_i(\bxi)^\top$ is spanned by $[\cos \theta, \: \sin \theta,\: 0]$ and $[0, \: 0,\: 1]$, indicating admissible motions combine rolling and spinning.
+% --- Original text end ---
+
+\begin{frame}{Building Kinematic Models}
+\begin{itemize}
+\item After identifying constraints, express motion as $\dot{\bxi} = G(\bxi)\bu$.
+\item Columns of $G(\bxi)$ span the null space of $A^\top(\bxi)$, guaranteeing constraint satisfaction.
+\item Inputs $\bu$ parameterize allowable motions of dimension $n-k$.
+\end{itemize}
+\end{frame}
+% --- Original text start ---
+% Once an appropriate set of generalized coordinates $\bxi \in \R^n$ and all relevant kinematic constraints have been identified ... $\dot{\bxi} = G(\bxi)u$ with column space spanning the null space of $A^\top(\bxi)$.
+% --- Original text end ---
+
+\begin{frame}{Example: Wheel Kinematic Model}
+\begin{itemize}
+\item The wheel's constraint matrix has a one-dimensional row space, so $G(\bxi)$ has two columns.
+\item Choose columns $[\cos\theta\;\sin\theta\;0]^\top$ (rolling) and $[0\;0\;1]^\top$ (spin).
+\item Inputs $u_1$ and $u_2$ become forward speed and rotational rate, respectively.
+\end{itemize}
+\pause
+\[
+\begin{bmatrix}
+\dot{x}\\\dot{y}\\\dot{\theta}
+\end{bmatrix} =
+\begin{bmatrix}
+\cos\theta & 0\\
+\sin\theta & 0\\
+0 & 1
+\end{bmatrix}
+\begin{bmatrix}
+ u_1\\ u_2
+\end{bmatrix}
+\]
+\end{frame}
+% --- Original text start ---
+% Consider again the wheel example ... The null space is spanned by $[\cos \theta, \: \sin \theta,\: 0]$ and $[0, \: 0,\: 1]$, giving the model in \eqref{eq:wheelkinmodel}.
+% --- Original text end ---
+
+
+
+\end{document}

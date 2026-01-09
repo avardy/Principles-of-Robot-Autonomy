@@ -1,0 +1,235 @@
+\documentclass{beamer}
+
+\input{common_preamble.tex}
+
+\title{Mobile Robot Kinematics: Part 1}
+
+\begin{document}
+
+\begin{frame}[plain]
+\titlepage
+\end{frame}
+
+\begin{frame}{Source Material}
+    Covering the following sections from ``Principles of Robot Autonomy'':
+    \begin{itemize}
+    \item 1.1:
+    \begin{itemize}
+        \item 1.1.1 covered lightly (ignoring linearity and time-invariance)
+        \item 1.1.2 covering only Example 1.1.3
+    \end{itemize}
+%    \item 1.2:
+%    \begin{itemize}
+%        \item 1.2.1 - 1.2.4 covered fully
+%        \item 1.2.5 not covered
+%    \end{itemize}
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}{Motion Planning Needs Models}
+\begin{itemize}
+\item Motion planning and control are fundamental components of robotic autonomy.
+\item But to do either, we need some model of robot motion.
+\item We start by discussing \emph{state} and \emph{state-space models}.
+\item We will then look at the distinction between \emph{dynamics} and \emph{kinematics}.
+\item Many robots are subject to \emph{kinematic constraints} which are crucial to understand.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}{State Space Models}
+    A state space model is a framework to describe a system (e.g. a moving robot) evolving over time.
+    \begin{block}{State}
+    The state of a system at time $t_0$ is a minimal
+set of variables $\mathbf{x}(t_0)$ such that, given the control input $\mathbf{u}(t)$ for all $t \geq t_0$, the
+future evolution of the system's state $\mathbf{x}(t)$ for all $t \geq t_0$ is uniquely determined.
+    \end{block}
+    \pause
+
+    \begin{itemize}
+    \item Both $\mathbf{x}(t)$ and $\mathbf{u}(t)$ are vectors. $\mathbf{x}(t)$ is the \emph{state vector} which is $n-$dimensional. 
+    
+    \item The state for a mobile robot will often be $\mathbf{x}(t) = [x, y, \theta]$.
+    \pause
+
+    \item $(x, y)$ refers to the robot's $x-$ and $y-$ coordinates relative to some coordinate frame, and $\theta$ is the robot's rotation relative to that frame.
+
+    \item Note: $\mathbf{x}$ is a vector, whereas $x$ is a scalar.
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+    What variables we consider part of the state is dependent both on the scenario and the level of modelling.
+    \pause
+
+    \vspace{1em}
+    \begin{tabular*}{\textwidth}{@{\extracolsep{\fill}}p{0.22\textwidth}p{0.22\textwidth}p{0.22\textwidth}p{0.22\textwidth}}
+        \raggedright Mobile robot & \raggedright ...with linear ($v$) and angular ($\omega$) speeds & \raggedright ...with landmarks & \raggedright\arraybackslash Arm with 6 joint angles \\
+        \noalign{\smallskip}
+            $\mathbf{x} = \begin{bmatrix} 
+                x \\ 
+                y \\ 
+                \theta
+            \end{bmatrix} 
+            $
+& 
+            $\mathbf{x} = \begin{bmatrix} 
+                x \\ 
+                y \\ 
+                \theta \\ 
+                v \\ 
+                \omega 
+            \end{bmatrix}
+            $
+& 
+            $\mathbf{x} = \begin{bmatrix} 
+                x \\ 
+                y \\ 
+                \theta \\ 
+                l_{1,x} \\ 
+                l_{1,y} \\ 
+                l_{2,x} \\ 
+                l_{2,y} \\ 
+                \vdots 
+            \end{bmatrix}
+            $
+& 
+            $\mathbf{x} = \begin{bmatrix} 
+                q_1 \\ 
+                q_2 \\ 
+                \vdots \\ 
+                q_6 \\ 
+                \dot{q}_1 \\ 
+                \dot{q}_2 \\ 
+                \vdots \\ 
+                \dot{q}_6 
+            \end{bmatrix} 
+            $
+    \end{tabular*}
+\end{frame}
+
+
+\begin{frame}
+\begin{itemize}
+\item $\mathbf{u}(t)$ is considered the system's input.
+\item The inputs could be forces, torques, voltages, commands, or whatever we have direct control over.
+\item $\mathbf{u}(t)$ is $m-$dimensional.
+\item The system may also have some output $\mathbf{y}(t)$ which typically comes from sensor data (e.g. GPS or camera pixels).
+\item $\mathbf{y}(t)$ is $q-$dimensional.
+\item The process of inferring the state from the system's output is known as \emph{state estimation}.
+\end{itemize}
+\end{frame}
+
+
+\begin{frame}
+\begin{block}{Model}
+    A state-space model describes the evolution of a system through \emph{state equations} and \emph{observation equations}.
+\end{block}
+    \pause\vspace{0.5cm}
+
+    State equations are differential equations of the following form:
+    \pause
+
+    $$\dot{\mathbf{x}} = f(\mathbf{x}(t), \mathbf{u}(t)),$$
+    \pause
+    where $\dot{\mathbf{x}} = \frac{dx(t)}{dt}$.
+    \pause
+
+    \vspace{0.5cm}
+    Observations equations have this form:
+
+    $$\mathbf{y}(t) = h(\mathbf{x}(t), \mathbf{u}(t))$$
+\end{frame}
+
+
+\begin{frame}{Linear Models}
+    A state-space model which is \emph{linear} can be expressed the following form:
+    \pause
+        \begin{align*}
+            \dot{\mathbf{x}}(t) &= A(t)\mathbf{x}(t) + B(t)\mathbf{u}(t) \\
+            \mathbf{y}(t) &= C(t)\mathbf{x}(t) + D(t)\mathbf{u}(t)
+        \end{align*}
+        \pause
+        \begin{itemize}
+            \item $A(t)$ is the dynamics matrix ($n \times n$).
+            \item $B(t)$ is the control matrix ($n \times m$).
+            \item $C(t)$ is the output/sensor matrix ($q \times n$).
+            \item $D(t)$ is the direct matrix ($q \times m$).
+        \end{itemize}
+\end{frame}
+
+
+\begin{frame}
+    If $A(t)$, $B(t)$, $C(t)$ and $D(t)$ are actually time-invariant, we can express the model more compactly,
+        \begin{align*}
+            \dot{\mathbf{x}}(t) &= A\mathbf{x}(t) + B\mathbf{u}(t) \\
+            \mathbf{y}(t) &= C\mathbf{x}(t) + D\mathbf{u}(t).
+        \end{align*}
+    We will often leave off the ``$(t)$'' even when it applies (e.g. $\mathbf{x}$ is always going to be a function of time, otherwise we don't need the model). 
+        \begin{align*}
+            \dot{\mathbf{x}} &= A\mathbf{x} + B\mathbf{u} \\
+            \mathbf{y} &= C\mathbf{x} + D\mathbf{u}.
+        \end{align*}
+\end{frame}
+
+
+\begin{frame}{Example: Double-Integrator}
+    Consider a mass in space (i.e. no friction, no gravity). We can push the mass in a fixed direction, through an input force $u$.
+    \pause
+    \begin{center}
+        \includegraphics[width=0.4\linewidth]{figs/ch01/mass_in_space.pdf}
+    \end{center}
+
+    $s$ is the one-dimensional position of the mass.
+    \pause\vspace{0.5cm}
+
+    The system is governed by Newton's Second Law of Motion:
+    $$u = m \ddot{s}$$
+
+    \pause
+    To recover $s$ we would need to integrate $\ddot{s}$ twice, hence this is referred to as a double-integrator system.
+\end{frame}
+
+
+\begin{frame}
+    To describe this second-order system, we define two state variables:
+    \vspace{0.3cm}
+    \begin{itemize}
+        \item $x_1 = s$ (position)
+        \item $x_2 = \dot{s}$ (speed)
+    \end{itemize}
+    \pause\vspace{0.3cm}
+    The derivatives of our states are:
+    \begin{itemize}
+        \item $\dot{x}_1 = \dot{s} = x_2$
+        \item $\dot{x}_2 = \ddot{s} = \frac{1}{m}u$
+    \end{itemize}
+    \pause\vspace{0.3cm}
+    We can now write this in matrix form.
+    \vspace{0.5cm}
+    $$\begin{bmatrix} \dot{x}_1 \\ \dot{x}_2 \end{bmatrix} = \begin{bmatrix} 0 & 1 \\ 0 & 0 \end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \end{bmatrix} + \begin{bmatrix} 0 \\ \frac{1}{m} \end{bmatrix} u$$
+    \pause\vspace{0.3cm}
+    This is the state equation.
+\end{frame}
+
+
+\begin{frame}
+    What about the observation equation? Actually, we can't obtain this without some definition for the output, $\mathbf{y}$.
+    \pause\vspace{0.3cm}
+
+    Lets define our output $y$ (a scalar) as the position $s$:
+    $$y = \begin{bmatrix} 1 & 0 \end{bmatrix} \begin{bmatrix} x_1 \\ x_2 \end{bmatrix} + [0] u$$
+
+    We now have the complete state-space model:
+    \pause\vspace{0.3cm}
+    \begin{itemize}
+        \item Dynamics Matrix: $\mathbf{A} = \begin{bmatrix} 0 & 1 \\ 0 & 0 \end{bmatrix}$
+        \item Control Matrix: $\mathbf{B} = \begin{bmatrix} 0 \\ \frac{1}{m} \end{bmatrix}$
+        \item Output Matrix: $\mathbf{C} = \begin{bmatrix} 1 & 0 \end{bmatrix}$
+        \item Direct Matrix: $\mathbf{D} = [0]$
+    \end{itemize}
+\end{frame}
+
+\end{document}
